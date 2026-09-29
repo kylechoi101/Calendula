@@ -31,12 +31,18 @@ pipeline runs from day one.
 - Only send an agent the fields it needs; `tests/test_coordinator.py::test_minimum_necessary` checks this.
 - Secrets go in `.env` only (see `.env.example`), never in the bundle.
 
-## Develop
+## Setup
+
+Needs [uv](https://docs.astral.sh/uv/) (`brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`).
 
 ```bash
-pip install -e ".[dev]"
-pytest                     # protocol, worker contracts, full coordinator run on the fake grid
+uv sync                    # creates .venv with Python 3.11 (.python-version), deps from uv.lock, pytest included
+cp .env.example .env       # then fill in KIMI_API_KEY / MINIMAX_API_KEY
+uv run pytest              # protocol, worker contracts, full coordinator run on the fake grid
 ```
+
+Add a dependency with `uv add <pkg>` (dev-only: `uv add --dev <pkg>`) and commit `pyproject.toml` + `uv.lock` together.
+Prefix commands with `uv run` or `source .venv/bin/activate` first.
 
 ## Run locally (1 SuperLink + 5 SuperNodes)
 
@@ -49,8 +55,8 @@ insecure = true
 Then:
 ```bash
 ./run_cluster.sh                                   # logs in logs/
-python scripts/ask.py "I have atrial fibrillation, PLAN-B, zip 94301"   # scripted run
-FLWR_CHAT_SUPERLINK=local-deployment flwr chat     # interactive; then /load .
+uv run scripts/ask.py "I have atrial fibrillation, PLAN-B, zip 94301"   # scripted run
+FLWR_CHAT_SUPERLINK=local-deployment uv run flwr chat                   # interactive; then /load .
 ```
 
 ## Flower 1.39 gotchas we hit

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local rehearsal: 1 SuperLink + 5 SuperNodes (one per worker role). Ctrl-C stops all. Logs in logs/.
+# Local rehearsal (run `uv sync` first): 1 SuperLink + 5 SuperNodes (one per worker role). Ctrl-C stops all. Logs in logs/.
 set -euo pipefail
 trap 'kill 0' EXIT
 mkdir -p logs
@@ -12,12 +12,12 @@ export FLWR_MODEL_API_KEY="${FLWR_MODEL_API_KEY:-$KIMI_API_KEY}"
 export CALENDULA_DATA_DIR="$PWD/data"
 
 # Control API on 9093 (8000 is often taken); no per-run `uv sync`, deps come from this env.
-flower-superlink --insecure --port 9093 --disable-runtime-dependency-installation > logs/superlink.log 2>&1 &
+uv run flower-superlink --insecure --port 9093 --disable-runtime-dependency-installation > logs/superlink.log 2>&1 &
 sleep 3
 
 port=9094
 for role in doctor review hospital insurance travel; do
-  flower-supernode --insecure --superlink 127.0.0.1:9092 \
+  uv run flower-supernode --insecure --superlink 127.0.0.1:9092 \
     --port $port --node-config "role=\"$role\"" > "logs/$role.log" 2>&1 &
   port=$((port + 1))
 done

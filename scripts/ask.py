@@ -1,7 +1,7 @@
 """Start one chat run without the interactive `flwr chat` UI, then stream its log.
 
-    python scripts/ask.py "I have atrial fibrillation, PLAN-B, zip 94301"
-    FLWR_CHAT_SUPERLINK=supergrid python scripts/ask.py "..."
+    uv run scripts/ask.py "I have atrial fibrillation, PLAN-B, zip 94301"
+    FLWR_CHAT_SUPERLINK=supergrid uv run scripts/ask.py "..."
 
 Uses flwr CLI internals (flwr 1.39); if an upgrade breaks it, fall back to `flwr chat`.
 """
