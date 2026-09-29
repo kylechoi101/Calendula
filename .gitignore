@@ -4,3 +4,5 @@ __pycache__/
 .pytest_cache/
 *.fab
 .claude/settings.local.json
+conversation/
+.env*
