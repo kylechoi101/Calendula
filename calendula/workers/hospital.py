@@ -8,17 +8,12 @@ import json
 from pathlib import Path
 
 from agents import Agent, RunContextWrapper, function_tool
-from pydantic import BaseModel
 
 from calendula import llm
 
 PROMPT = """You look up hospitals for a patient. For every hospital id in the request, call
 list_conditions, pick the recorded condition that matches the request's condition (or none if no
-record matches), then call get_hospital with that exact name (or null)."""
-
-
-class Done(BaseModel):
-    hospital_ids: list[str]
+record matches), then call get_hospital with that exact name (or null). Reply "done" when finished."""
 
 
 def lookup(data: dict, hid: str, condition: str | None, specialty: str) -> dict | None:
@@ -45,7 +40,8 @@ def get_hospital(ctx: RunContextWrapper[dict], hospital_id: str, condition: str 
     return found
 
 
-AGENT = Agent(name="hospital", instructions=PROMPT, tools=[list_conditions, get_hospital], output_type=Done)
+# No output_type: results are captured by get_hospital into ctx["seen"]; the final text is ignored.
+AGENT = Agent(name="hospital", instructions=PROMPT, tools=[list_conditions, get_hospital])
 
 
 def load(data_dir: Path) -> dict:
