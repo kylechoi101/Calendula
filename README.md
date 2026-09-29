@@ -25,7 +25,9 @@ pipeline runs from day one.
 ## Rules
 
 - A worker only sees `handle(req, data)`; it never imports Flower. Raise on bad input and the dispatcher replies with an error envelope.
-- Data is JSON, not CSV: `flwr app publish` only bundles `.py/.toml/.md/.json/.jsonl/.yaml`, so CSV files would be dropped from the Hub app.
+- Data is the CSVs in `data/`. The app bundle (FAB) drops `.csv`, so workers read them from local disk via `CALENDULA_DATA_DIR` (`run_cluster.sh` sets it).
+- Protocol v2 (`protocol.py`): insurance gets the insurer and returns covered hospital names; every scoring agent gets `{hospitals, case}` and returns `{"scores": [{name, kind, hospital, score 0-1, note}]}`. The coordinator takes the weighted average using the parent's priorities.
+- Agents SDK with tools: tell the model the exact JSON to reply with in the prompt, or after a tool call it answers in prose and the run falls back (`Invalid JSON when parsing model output`).
 - Only send an agent the fields it needs; `tests/test_coordinator.py::test_minimum_necessary` checks this.
 - Secrets go in `.env` only (see `.env.example`), never in the bundle.
 

@@ -8,6 +8,7 @@ import json
 import os
 import sys
 
+import httpx
 from agents import Agent, OpenAIResponsesModel, RunConfig, Runner
 from openai import AsyncOpenAI, OpenAI
 
@@ -27,6 +28,21 @@ def complete(instructions: str, prompt: str, model: str = DEFAULT, timeout: floa
     return client.responses.create(model=model, instructions=instructions, input=prompt).output_text
 
 
+# Flower Runtime's /responses proxy rejects any field outside this set (flwr 1.39, routers/runtime/responses.py);
+# the Agents SDK always sends a few more (e.g. "include": []), so they're dropped before the request leaves.
+PROXY_FIELDS = {"model", "input", "stream", "tools", "tool_choice", "reasoning", "previous_response_id",
+                "instructions", "max_output_tokens", "metadata", "text"}
+
+
+class _ProxyTransport(httpx.AsyncHTTPTransport):
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path.endswith("/responses"):
+            body = {k: v for k, v in json.loads(request.content).items() if k in PROXY_FIELDS}
+            headers = {k: v for k, v in request.headers.items() if k.lower() != "content-length"}
+            request = httpx.Request("POST", request.url, headers=headers, content=json.dumps(body).encode())
+        return await super().handle_async_request(request)
+
+
 def run_agent(agent: Agent, req: dict, context: dict, model: str = DEFAULT, timeout: float = 60):
     """Run a worker agent (OpenAI Agents SDK) over its request. Tools get `context` via ctx.context.
 
@@ -38,6 +54,7 @@ def run_agent(agent: Agent, req: dict, context: dict, model: str = DEFAULT, time
             api_key=os.environ["FLWR_RUNTIME_API_KEY"],
             max_retries=0,
             timeout=timeout,
+            http_client=httpx.AsyncClient(transport=_ProxyTransport(), timeout=timeout),
         )
         # Explicit model object: the SDK would parse a plain "dedicated/..." string as a provider prefix.
         # Tracing off: the SDK uploads traces to OpenAI by default, and these carry private data.

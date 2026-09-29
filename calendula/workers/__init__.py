@@ -4,13 +4,16 @@ Workers never touch Flower: `answer` is plain str -> str, so every worker is tes
 """
 
 import json
+import os
 from pathlib import Path
 
 from calendula import grid, protocol
 from calendula.workers import doctor, hospital, insurance, review, travel
 
 WORKERS = {"doctor": doctor, "review": review, "hospital": hospital, "insurance": insurance, "travel": travel}
-DATA_DIR = Path(__file__).resolve().parents[2] / "data"  # bundled into the FAB next to calendula/
+# CALENDULA_DATA_DIR: each SuperNode reads its data from local disk (the CSVs can't ride in the FAB, which
+# only bundles .py/.toml/.md/.yaml/.json/.jsonl). Unset: the repo's data/ folder (pytest, local dev).
+DATA_DIR = Path(os.environ.get("CALENDULA_DATA_DIR") or Path(__file__).resolve().parents[2] / "data")
 
 _data: dict[str, object] = {}  # loaded once per process
 

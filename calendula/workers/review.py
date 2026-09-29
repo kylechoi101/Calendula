@@ -1,9 +1,11 @@
-"""Review agent: owns data/review.json. Request type: reviews. Uses the model.
+"""Review agent: owns the doctor ratings. Request type: reviews. Uses the model for the note only.
 
-The agent reads reviews through a tool and judges empathy; avg_rating and n are computed from data.
+Data: artificial_doctor_ratings.csv (Google and GoodDoctor stars per doctor). The doctor -> hospital link
+comes from artificial_pediatric_brain_cancer_doctors.csv so the agent can keep to covered hospitals.
+Scores come from the ratings, never the model; the model only writes the one-line note per doctor.
 """
 
-import json
+import csv
 from pathlib import Path
 
 from agents import Agent, RunContextWrapper, function_tool
@@ -11,52 +13,63 @@ from pydantic import BaseModel
 
 from calendula import llm
 
-PROMPT = """You read patient reviews of doctors. For every NPI in the request, call get_reviews, then
-score empathy from 0 to 1 (listening, explaining, respect) and pick one representative quote of
-20 words or fewer, copied verbatim from a review."""
+RATINGS = "artificial_doctor_ratings.csv"
+DOCTORS = "artificial_pediatric_brain_cancer_doctors.csv"
+
+PROMPT = """You summarize doctors' public ratings for a worried parent. Call get_ratings once with the
+request's hospitals, then for every doctor write a note of 10 words or fewer about their reputation
+(e.g. "highly rated on both sites", "ratings differ between sites"). Do not invent numbers.
+Reply with only this JSON, no other text: {"notes": [{"doctor_id": "<id>", "note": "<note>"}]}"""
 
 
-class Judgment(BaseModel):
-    npi: str
-    empathy: float
-    quote: str
+class Note(BaseModel):
+    doctor_id: str
+    note: str
 
 
-class Judgments(BaseModel):
-    judgments: list[Judgment]
-
-
-def recent(data: dict, npi: str, n: int = 5) -> list[dict]:
-    return sorted(data["reviews"].get(npi, []), key=lambda r: r["date"], reverse=True)[:n]
-
-
-@function_tool
-def get_reviews(ctx: RunContextWrapper[dict], npi: str) -> list[dict]:
-    """The 5 most recent reviews (rating 1-5, date, text) for one doctor NPI."""
-    return [{"rating": r["rating"], "date": r["date"], "text": r["text"]} for r in recent(ctx.context["data"], npi)]
-
-
-AGENT = Agent(name="review", instructions=PROMPT, tools=[get_reviews], output_type=Judgments)
+class Notes(BaseModel):
+    notes: list[Note]
 
 
 def load(data_dir: Path) -> dict:
-    return json.loads((data_dir / "review.json").read_text())
+    with open(data_dir / DOCTORS, newline="") as f:
+        hospital = {r["Doctor ID"]: r["Hospital Name"] for r in csv.DictReader(f)}
+    with open(data_dir / RATINGS, newline="") as f:
+        doctors = [{"id": r["Doctor ID"], "name": r["Doctor Name"], "hospital": hospital.get(r["Doctor ID"]),
+                    "google": float(r["Google Rating (1-5)"]), "gooddoctor": float(r["GoodDoctor Rating (1-5)"])}
+                   for r in csv.DictReader(f)]
+    return {"doctors": doctors}
+
+
+def at(data: dict, hospitals: list[str]) -> list[dict]:
+    covered = set(hospitals)
+    return [d for d in data["doctors"] if d["hospital"] in covered]
+
+
+def default_note(d: dict) -> str:
+    return f"Google {d['google']}, GoodDoctor {d['gooddoctor']}" + (
+        " (sites disagree)" if abs(d["google"] - d["gooddoctor"]) >= 1 else "")
+
+
+@function_tool
+def get_ratings(ctx: RunContextWrapper[dict], hospitals: list[str]) -> list[dict]:
+    """Google and GoodDoctor ratings (1-5) for every doctor at these hospitals."""
+    return [{k: d[k] for k in ("id", "name", "google", "gooddoctor")} for d in at(ctx.context["data"], hospitals)]
+
+
+AGENT = Agent(name="review", instructions=PROMPT, tools=[get_ratings], output_type=Notes)
 
 
 def handle(req: dict, data: dict) -> dict:
-    # ponytail: one agent run for all NPIs; batch in 15s (spec) if requests get large.
-    out = llm.run_agent(AGENT, req, {"data": data})
-    judged = {j.npi: j for j in out.judgments} if out else {}
-    reviews = {}
-    for npi in req["npis"]:
-        rs = data["reviews"].get(npi, [])
-        if not rs:
-            continue
-        avg = sum(r["rating"] for r in rs) / len(rs)
-        latest = recent(data, npi, 1)[0]["text"]
-        j = judged.get(npi)
-        # A quote must really appear in a review; otherwise use the most recent one.
-        quote = j.quote if j and any(j.quote in r["text"] for r in rs) else latest
-        reviews[npi] = {"avg_rating": round(avg, 2), "n": len(rs), "quote": quote,
-                        "empathy": min(max(j.empathy, 0.0), 1.0) if j else round((avg - 1) / 4, 2)}
-    return {"reviews": reviews}
+    found = at(data, req["hospitals"])
+    if not found:
+        return {"scores": []}
+    # The model sees only hospital names; ratings reach it through the tool. The case brief isn't needed.
+    out = llm.run_agent(AGENT, {"hospitals": req["hospitals"]}, {"data": data})
+    notes = {n.doctor_id: n.note for n in out.notes} if out else {}
+    scores = []
+    for d in found:
+        avg = (d["google"] + d["gooddoctor"]) / 2
+        scores.append({"name": d["name"], "kind": "doctor", "hospital": d["hospital"],
+                       "score": round((avg - 1) / 4, 3), "note": notes.get(d["id"]) or default_note(d)})
+    return {"scores": scores}

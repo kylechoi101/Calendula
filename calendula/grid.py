@@ -40,6 +40,32 @@ def reply_once(agent, payload: str) -> None:
     call(agent, "push_reply_message", payload=payload)
 
 
+def transcript(agent) -> list[dict]:
+    """The chat so far as [{"role": "user"|"assistant", "text": ...}], ending with this run's prompt.
+
+    Each `flwr chat` turn is a new run in one run series; get_trace() returns the whole series: the user's
+    prompts as "message" events and our replies as text deltas.
+    """
+    turns: list[dict] = []
+    try:
+        trace = agent.events.get_trace()
+    except Exception:  # noqa: BLE001 - no history available: this prompt is the whole conversation
+        trace = []
+    for e in trace:
+        d = e.get("data") or {}
+        kind = e.get("event") or d.get("type")
+        if kind == "message" and d.get("role") == "user" and isinstance(d.get("content"), str):
+            turns.append({"role": "user", "text": d["content"]})
+        elif kind == "response.output_text.delta" and isinstance(d.get("delta"), str):
+            if turns and turns[-1]["role"] == "assistant":
+                turns[-1]["text"] += d["delta"]
+            else:
+                turns.append({"role": "assistant", "text": d["delta"]})
+    if not turns or turns[-1] != {"role": "user", "text": agent.prompt}:
+        turns.append({"role": "user", "text": agent.prompt})
+    return turns
+
+
 def say(agent, text: str) -> None:
     """Show text in `flwr chat` (renders output_text delta events only) and in `flwr log` (stdout only)."""
     agent.events.emit({"type": "response.output_text.delta", "delta": text})

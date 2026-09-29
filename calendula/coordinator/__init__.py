@@ -1,37 +1,50 @@
-"""Coordinator agent (runs on the SuperLink): intake -> discover -> phase 1 -> phase 2 -> score -> explain."""
+"""Coordinator agent (runs on the SuperLink).
 
-from calendula.grid import say
-from calendula.protocol import envelope
+Each `flwr chat` turn is one run: intake over the whole chat -> (warm follow-up and stop) or
+recap -> insurance (covered hospitals) -> scoring agents in parallel -> weighted ranking -> explain.
+"""
+
+from calendula.grid import say, transcript
+from calendula.protocol import ROLE_TYPE, envelope
 from calendula.coordinator import explain, fanout, intake, scoring
+
+SCORING_ROLES = ("review", "hospital", "travel", "doctor")  # doctor joins only if a node runs it
 
 
 def run(agent) -> None:
-    profile = intake.parse(agent.prompt)
+    profile = intake.gather(transcript(agent))
+    if profile["missing"]:  # no agent is called until the case is complete
+        say(agent, profile["follow_up"] + "\n")
+        return
+    say(agent, intake.recap(profile))
 
     roles = fanout.discover(agent)  # {role: node_id}
     say(agent, f"Agents online: {', '.join(sorted(roles)) or 'none'}\n\n")
 
-    # Phase 1: Doctor gets only condition/specialty/needs_surgery (minimum necessary).
-    doctors = fanout.ask(agent, roles, {"doctor": envelope("find_doctors", {
-        "condition": profile["condition"], "specialty": profile["specialty"],
-        "needs_surgery": profile["needs_surgery"], "limit": 15,
-    })})["doctor"]
-    if not doctors:
-        say(agent, "Doctor directory unavailable, try again.")
+    # Step 1: insurance gets only the insurer, and returns the hospitals it covers.
+    errors: dict[str, str] = {}
+    cov = fanout.ask(agent, roles, {"insurance": envelope("coverage", {"insurer": profile["insurer"]})},
+                     errors=errors)["insurance"]
+    if cov is None:
+        if "insurance" in errors and "unknown insurer" in errors["insurance"]:
+            say(agent, f"\nI couldn't find **{profile['insurer']}** in our insurance records. Could you check "
+                       "the plan name on your insurance card and tell me exactly how it's written?\n")
+        else:
+            say(agent, "\nI'm sorry, I can't reach the insurance records right now. Please try again shortly.\n")
         return
-    npis = [d["npi"] for d in doctors["doctors"]]
-    hids = sorted({d["hospital_id"] for d in doctors["doctors"]})
+    covered = cov["hospitals"]
+    if not covered:
+        say(agent, f"\nI'm sorry, I couldn't find hospitals in our network that {profile['insurer']} covers "
+                   "for this care. It may help to ask your insurer about out-of-network exceptions.\n")
+        return
+    say(agent, f"{len(covered)} hospitals are covered by {profile['insurer']}.\n\n")
 
-    # Phase 2: four agents in one push, one wait. Each gets only the fields it needs.
-    phase2 = fanout.ask(agent, roles, {
-        "review": envelope("reviews", {"npis": npis}),
-        "hospital": envelope("hospitals", {"hospital_ids": hids, "condition": profile["condition"],
-                                           "specialty": profile["specialty"]}),
-        "insurance": envelope("coverage", {"plan_id": profile["plan_id"], "hospital_ids": hids}),
-        "travel": envelope("travel", {"lat": profile["lat"], "lon": profile["lon"], "hospital_ids": hids}),
-    })
+    # Step 2: every scoring agent gets the covered hospitals and the case brief, in one push.
+    req = {"hospitals": covered, "case": intake.case(profile)}
+    asked = [r for r in SCORING_ROLES if r in roles or r != "doctor"]
+    replies = fanout.ask(agent, roles, {r: envelope(ROLE_TYPE[r], req) for r in asked})
 
-    rows = scoring.join(doctors, **phase2)
-    top, filtered = scoring.rank(rows, profile)
-    missing = sorted(r for r, v in phase2.items() if v is None)
-    say(agent, explain.explain(profile, top, filtered, missing))
+    w = intake.weights(profile)
+    ranking = scoring.rank(covered, replies, w)
+    missing = sorted(r for r, v in replies.items() if v is None)
+    say(agent, "\n" + explain.explain(intake.case(profile), {r: w[r] for r in asked}, ranking, missing))
