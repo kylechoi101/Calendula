@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Federated doctor matching: a coordinator and five data-owning agents on Flower"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.11,<4.0"
-dependencies = ["flwr>=1.39.0,<2.0", "openai>=1.102"]
+dependencies = ["flwr>=1.39.0,<2.0", "openai>=1.102", "openai-agents>=0.22.3"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
