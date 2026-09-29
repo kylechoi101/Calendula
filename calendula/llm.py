@@ -39,7 +39,8 @@ class _ProxyTransport(httpx.AsyncHTTPTransport):
         if request.method == "POST" and request.url.path.endswith("/responses"):
             body = {k: v for k, v in json.loads(request.content).items() if k in PROXY_FIELDS}
             headers = {k: v for k, v in request.headers.items() if k.lower() != "content-length"}
-            request = httpx.Request("POST", request.url, headers=headers, content=json.dumps(body).encode())
+            request = httpx.Request("POST", request.url, headers=headers, content=json.dumps(body).encode(),
+                                    extensions=request.extensions)  # carries the timeout
         return await super().handle_async_request(request)
 
 

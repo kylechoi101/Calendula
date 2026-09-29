@@ -72,3 +72,32 @@ def test_missing_agent_is_flagged():
 def test_no_insurance_agent_stops():
     agent = run(FULL, roles=("review", "hospital", "travel"))
     assert "can't reach the insurance records" in agent.text
+
+
+def test_minimum_necessary():
+    sent = {role: env["data"] for role, env in calls(run(FULL))}
+    assert sent["insurance"] == {"insurer": "SierraCare Health Plan"}
+    assert sent["review"]["case"] == {}
+    assert sent["travel"]["case"] == {"zip": "95816"}
+    assert "zip" not in sent["hospital"]["case"]
+
+
+def test_finished_search_is_not_rerun():
+    first = run(FULL)
+    agent = run("Thank you so much.", history=[{"role": "user", "text": FULL},
+                                               {"role": "assistant", "text": first.text}])
+    assert "still my best match" in agent.text and agent.sent == []
+
+
+def test_corrected_insurer_is_used():
+    history = [{"role": "user", "text": "My son has medulloblastoma, ZIP 95816, Acme Health Plan. Distance matters most."},
+               {"role": "assistant", "text": "I couldn't find **Acme Health Plan**. Could you check the plan name?"}]
+    agent = run("Sorry, it's SierraCare Health Plan.", history=history)
+    assert calls(agent)[0][1]["data"] == {"insurer": "SierraCare Health Plan"}
+    assert "Top doctors" in agent.text
+
+
+def test_story_words_do_not_count_as_priorities():
+    agent = run("She was treated at the hospital near home, we're in 95816 and Our Insurance is SierraCare Health Plan. "
+                "Diagnosis: medulloblastoma.")
+    assert agent.sent == [] and "what matters most" in agent.text

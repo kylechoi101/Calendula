@@ -33,3 +33,12 @@ def test_uncovered_hospitals_are_dropped():
 def test_silent_agent_drops_out_of_the_average():
     r = scoring.rank(["A"], {"hospital": REPLIES["hospital"], "travel": None}, {"hospital": 1, "travel": 5})
     assert r["hospitals"][0]["total"] == 1.0
+
+
+def test_malformed_entries_are_dropped():
+    bad = {"hospital": {"scores": [{"name": "A", "hospital": "A", "score": 0.5},  # no kind
+                                   {"name": "A", "kind": "hospital", "hospital": "A", "score": None},
+                                   {"name": "A", "kind": "hospital", "hospital": ["A"], "score": 1},
+                                   s("A", "hospital", "A", 0.7)]}}
+    r = scoring.rank(["A"], bad, {"hospital": 1})
+    assert r["hospitals"][0]["total"] == 0.7

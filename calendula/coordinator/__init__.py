@@ -12,11 +12,17 @@ SCORING_ROLES = ("review", "hospital", "travel", "doctor")  # doctor joins only 
 
 
 def run(agent) -> None:
-    profile = intake.gather(transcript(agent))
+    turns = transcript(agent)
+    profile = intake.gather(turns)
     if profile["missing"]:  # no agent is called until the case is complete
         say(agent, profile["follow_up"] + "\n")
         return
-    say(agent, intake.recap(profile))
+    recap = intake.recap(profile)
+    if any(t["role"] == "assistant" and recap in t["text"] for t in turns):  # same case already searched
+        say(agent, "The ranking above is still my best match for what you've shared. If anything changes, "
+                   "like your ZIP code, insurance, or what matters most, just tell me and I'll search again.\n")
+        return
+    say(agent, recap)
 
     roles = fanout.discover(agent)  # {role: node_id}
     say(agent, f"Agents online: {', '.join(sorted(roles)) or 'none'}\n\n")
@@ -39,10 +45,10 @@ def run(agent) -> None:
         return
     say(agent, f"{len(covered)} hospitals are covered by {profile['insurer']}.\n\n")
 
-    # Step 2: every scoring agent gets the covered hospitals and the case brief, in one push.
-    req = {"hospitals": covered, "case": intake.case(profile)}
+    # Step 2: every scoring agent gets the covered hospitals and its part of the case brief, in one push.
     asked = [r for r in SCORING_ROLES if r in roles or r != "doctor"]
-    replies = fanout.ask(agent, roles, {r: envelope(ROLE_TYPE[r], req) for r in asked})
+    replies = fanout.ask(agent, roles, {r: envelope(ROLE_TYPE[r], {"hospitals": covered, "case": intake.case(profile, r)})
+                                         for r in asked})
 
     w = intake.weights(profile)
     ranking = scoring.rank(covered, replies, w)

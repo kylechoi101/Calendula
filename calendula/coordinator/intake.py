@@ -59,12 +59,14 @@ REQUIRED = {"condition": "your child's diagnosis", "zip": "your ZIP code",
             "insurer": "your insurance provider", "priorities": "what matters most to you in choosing care"}
 
 CONDITIONS = ["medulloblastoma", "high-grade glioma", "glioma", "ependymoma"]
+# Phrases that clearly state a priority (plain words like "hospital" or "home" appear in every story).
 PRIORITY_WORDS = {
-    "doctor_reputation": ["review", "rating", "reputation", "bedside", "kind"],
-    "hospital_quality": ["hospital", "outcome", "ranking", "best care", "quality"],
-    "distance": ["close", "near", "distance", "drive", "far", "home"],
-    "specialist_experience": ["experience", "specialist", "expert", "surgeon"],
+    "doctor_reputation": ["reviews", "ratings", "reputation", "bedside manner", "other parents trust"],
+    "hospital_quality": ["track record", "outcomes", "hospital ranking", "best hospital", "hospital quality"],
+    "distance": ["close to home", "nearby", "distance", "short drive", "not too far"],
+    "specialist_experience": ["experienced", "experience matters", "specialist", "expert"],
 }
+NOT_INSURER = {"our", "my", "the", "we", "their", "his", "her"}
 
 
 def missing(p: dict) -> list[str]:
@@ -76,14 +78,15 @@ def fallback(turns: list[dict]) -> dict:
     text = " ".join(t["text"] for t in turns if t["role"] == "user")
     low = text.lower()
     zips = re.findall(r"\b9\d{4}\b", text)
-    insurer = re.search(r"\b((?:[A-Z][A-Za-z]+ ){1,3}(?:Health Plan|Health|Assurance|Insurance|Coverage|"
-                        r"Partners|Network|Plan))\b", text)
+    names = re.findall(r"\b((?:[A-Z][A-Za-z]+ ){1,3}(?:Health Plan|Health|Assurance|Insurance|Coverage|"
+                       r"Partners|Network|Plan))\b", text)
+    names = [n for n in names if n.split()[0].lower() not in NOT_INSURER]  # "Our Insurance is ..."
     hits = {k: sum(w in low for w in words) for k, words in PRIORITY_WORDS.items()}
     return {
         "condition": next((c for c in CONDITIONS if c in low), None),
         "summary": None,
         "zip": zips[-1] if zips else None,
-        "insurer": insurer.group(1) if insurer else None,
+        "insurer": names[-1] if names else None,  # the latest wins, so a corrected plan name is used
         "priorities": {k: 5 if n else 2 for k, n in hits.items()} if any(hits.values()) else None,
         "follow_up": "",
     }
@@ -109,10 +112,17 @@ def weights(p: dict) -> dict[str, float]:
     return {role: float(pr.get(name, 3)) for name, role in PRIORITIES.items()}
 
 
-def case(p: dict) -> dict:
-    """The case brief sent to the scoring agents (protocol.CASE shape)."""
-    summary = p.get("summary") or f"{p.get('age') or 'A'}-year-old child with {p['condition']}."
-    return {"condition": p["condition"], "age": p.get("age"), "zip": p["zip"], "summary": summary}
+# Case fields each scoring agent needs (minimum necessary): review needs none, only travel gets the ZIP.
+CASE_FIELDS = {"review": (), "hospital": ("condition", "age", "summary"), "travel": ("zip",),
+               "doctor": ("condition", "age", "summary")}
+
+
+def case(p: dict, role: str | None = None) -> dict:
+    """The case brief (protocol.CASE shape), cut to what `role` needs when given."""
+    age = f"{p['age']}-year-old child" if p.get("age") else "Child"
+    full = {"condition": p["condition"], "age": p.get("age"), "zip": p["zip"],
+            "summary": p.get("summary") or f"{age} with {p['condition']}."}
+    return full if role is None else {k: full[k] for k in CASE_FIELDS.get(role, ())}
 
 
 def recap(p: dict) -> str:

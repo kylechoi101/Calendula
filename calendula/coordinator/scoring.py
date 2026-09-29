@@ -20,15 +20,18 @@ def rank(covered: list[str], replies: dict[str, dict | None], w: dict[str, float
     hospitals = {h: {"name": h, "factors": {}} for h in covered}
     doctors: dict[tuple[str, str], dict] = {}
     for role, reply in replies.items():
-        for s in (reply or {}).get("scores", []):
-            if s.get("hospital") not in hospitals:  # only covered hospitals count
+        for s in (reply or {}).get("scores") or []:
+            try:
+                f = {"score": min(max(float(s["score"]), 0.0), 1.0), "note": str(s.get("note") or "")}
+                name, kind, hosp = str(s["name"]), s["kind"], s["hospital"]
+            except (KeyError, TypeError, ValueError):  # a malformed entry is dropped, not fatal
                 continue
-            f = {"score": min(max(float(s["score"]), 0.0), 1.0), "note": s.get("note", "")}
-            if s["kind"] == "hospital":
-                hospitals[s["hospital"]]["factors"][role] = f
+            if not isinstance(hosp, str) or hosp not in hospitals or kind not in ("hospital", "doctor"):
+                continue  # only covered hospitals count
+            if kind == "hospital":
+                hospitals[hosp]["factors"][role] = f
             else:
-                d = doctors.setdefault((s["name"], s["hospital"]),
-                                       {"name": s["name"], "hospital": s["hospital"], "factors": {}})
+                d = doctors.setdefault((name, hosp), {"name": name, "hospital": hosp, "factors": {}})
                 d["factors"][role] = f
 
     for d in doctors.values():
