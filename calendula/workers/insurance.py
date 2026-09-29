@@ -1,45 +1,57 @@
-"""Insurance agent: owns data/insurance.json. Request type: coverage. Uses the model.
+"""Insurance agent: owns the insurer -> hospital contracts. Request type: coverage.
 
-The agent checks each hospital with a tool; network status in the reply comes from data, never the model.
+Data: artificial_insurance_hospital_contracts.csv (one row per insurer, 1 = hospital in network).
+An exact (case-insensitive) insurer name is answered from data directly. Otherwise the model matches what
+the parent wrote ("Sierra Care", "sierracare plan") to a known insurer via tools; the covered hospitals
+always come from data, never the model.
 """
 
-import json
+import csv
 from pathlib import Path
 
 from agents import Agent, RunContextWrapper, function_tool
 
 from calendula import llm
 
-PROMPT = """You check insurance coverage. Call check_coverage once with the request's plan_id and all
-of its hospital_ids."""
+CONTRACTS = "artificial_insurance_hospital_contracts.csv"
 
-
-def in_network(data: dict, plan_id: str, hids: list[str]) -> dict[str, bool]:
-    if plan_id not in data["plans"]:
-        raise ValueError(f"unknown plan {plan_id!r}")
-    return {h: h in data["plans"][plan_id] for h in hids}
-
-
-@function_tool
-def check_coverage(ctx: RunContextWrapper[dict], plan_id: str, hospital_ids: list[str]) -> dict[str, bool]:
-    """Whether each hospital is in-network for the plan. Errors on an unknown plan."""
-    found = in_network(ctx.context["data"], plan_id, hospital_ids)
-    ctx.context["seen"].update(found)
-    return found
-
-
-# Results land in ctx["seen"]; stop right after the tool instead of asking the model to summarize.
-AGENT = Agent(name="insurance", instructions=PROMPT, tools=[check_coverage], tool_use_behavior="stop_on_first_tool")
+PROMPT = """You match the insurance a parent wrote to one insurer in our records. Call list_insurers,
+pick the one insurer that is clearly the same company or plan (ignore case, spacing, typos, and extra
+words like "plan" or "insurance"), then call covered_hospitals with its exact name. If none clearly
+matches, do not call covered_hospitals; reply "no match"."""
 
 
 def load(data_dir: Path) -> dict:
-    return json.loads((data_dir / "insurance.json").read_text())
+    with open(data_dir / CONTRACTS, newline="") as f:
+        return {r.pop("Insurance Provider"): [h for h, v in r.items() if v.strip() == "1"] for r in csv.DictReader(f)}
+
+
+@function_tool
+def list_insurers(ctx: RunContextWrapper[dict]) -> list[str]:
+    """Every insurer in our records."""
+    return list(ctx.context["data"])
+
+
+@function_tool
+def covered_hospitals(ctx: RunContextWrapper[dict], insurer: str) -> list[str]:
+    """Hospitals in network for this insurer. insurer must be an exact name from list_insurers."""
+    found = ctx.context["data"].get(insurer)
+    if found is None:
+        raise ValueError(f"unknown insurer {insurer!r}; use a name from list_insurers")
+    ctx.context["insurer"] = insurer
+    return found
+
+
+AGENT = Agent(name="insurance", instructions=PROMPT, tools=[list_insurers, covered_hospitals])
 
 
 def handle(req: dict, data: dict) -> dict:
-    ctx = {"data": data, "seen": {}}
-    llm.run_agent(AGENT, req, ctx)
-    missing = [h for h in req["hospital_ids"] if h not in ctx["seen"]]
-    # Unknown plan raises here even if the agent swallowed it; the dispatcher replies with an error.
-    seen = ctx["seen"] | in_network(data, req["plan_id"], missing)
-    return {"coverage": {h: seen[h] for h in req["hospital_ids"]}}
+    asked = str(req["insurer"]).strip()
+    exact = {name.lower(): name for name in data}.get(asked.lower())
+    if exact is None:
+        ctx = {"data": data, "insurer": None}
+        llm.run_agent(AGENT, {"insurer": asked}, ctx)
+        exact = ctx["insurer"]
+    if exact is None:  # the coordinator looks for this phrase to ask the parent to check the plan name
+        raise ValueError(f"unknown insurer {asked!r}")
+    return {"hospitals": data[exact]}
