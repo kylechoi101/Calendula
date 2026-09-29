@@ -8,7 +8,7 @@ from calendula import protocol, workers
 
 
 # Teammates are moving these workers to protocol v2; drop a role from here once it passes.
-PENDING_V2 = {"doctor", "insurance", "travel"}
+PENDING_V2 = {"insurance", "travel"}
 
 
 def v2(role):
