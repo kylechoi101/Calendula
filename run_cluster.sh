@@ -8,6 +8,8 @@ mkdir -p logs
 set -a; source .env; set +a
 export FLWR_MODEL_API_ENDPOINT="${FLWR_MODEL_API_ENDPOINT:-https://api.tokenfactory.tf-ca1.nebius.com/v1/responses}"
 export FLWR_MODEL_API_KEY="${FLWR_MODEL_API_KEY:-$KIMI_API_KEY}"
+# Workers read the CSVs from here (not from the installed app bundle, which drops .csv files).
+export CALENDULA_DATA_DIR="$PWD/data"
 
 # Control API on 9093 (8000 is often taken); no per-run `uv sync`, deps come from this env.
 flower-superlink --insecure --port 9093 --disable-runtime-dependency-installation > logs/superlink.log 2>&1 &

@@ -6,8 +6,9 @@ from calendula import workers
 
 
 class FakeAgent:
-    def __init__(self, prompt: str, roles=tuple(workers.WORKERS)):
+    def __init__(self, prompt: str, roles=tuple(workers.WORKERS), history: list[dict] = ()):
         self.prompt = prompt
+        self.history = list(history)  # earlier turns: [{"role": "user"|"assistant", "text": ...}]
         self.nodes = {str(i): role for i, role in enumerate(roles, 1)}  # node_id -> role
         self.outbox: dict[str, dict] = {}  # message_id -> reply message
         self.sent: list[tuple[str, dict]] = []  # (role, request envelope) for assertions
@@ -18,6 +19,17 @@ class FakeAgent:
     def emit(self, event: dict) -> None:
         if event.get("type") == "response.output_text.delta":
             self.chat.append(event["delta"])
+
+    def get_trace(self) -> list[dict]:
+        """Earlier turns as Flower stores them, then this run's prompt (Flower records it at run start)."""
+        out = []
+        for t in self.history + [{"role": "user", "text": self.prompt}]:
+            if t["role"] == "user":
+                out.append({"event": "message", "data": {"type": "message", "role": "user", "content": t["text"]}})
+            else:
+                out.append({"event": "response.output_text.delta",
+                            "data": {"type": "response.output_text.delta", "delta": t["text"]}})
+        return out
 
     @property
     def text(self) -> str:

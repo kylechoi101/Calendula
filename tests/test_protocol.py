@@ -6,15 +6,15 @@ from calendula import protocol
 
 
 def test_parse_roundtrip():
-    env = protocol.envelope("coverage", {"plan_id": "PLAN-B", "hospital_ids": ["H1"]})
+    env = protocol.envelope("coverage", {"insurer": "SierraCare Health Plan"})
     assert protocol.parse(json.dumps(env)) == env
 
 
 @pytest.mark.parametrize("payload", [
     "not json",
-    json.dumps({"v": 2, "type": "coverage", "id": "x", "data": {}}),
-    json.dumps({"v": 1, "type": "nope", "id": "x", "data": {}}),
-    json.dumps({"v": 1, "type": "coverage", "id": "x", "data": {"plan_id": "PLAN-B"}}),
+    json.dumps({"v": 1, "type": "coverage", "id": "x", "data": {"insurer": "SierraCare Health Plan"}}),
+    json.dumps({"v": 2, "type": "nope", "id": "x", "data": {}}),
+    json.dumps({"v": 2, "type": "reviews", "id": "x", "data": {"hospitals": []}}),
 ])
 def test_parse_rejects(payload):
     with pytest.raises(protocol.ProtocolError):

@@ -13,8 +13,12 @@ def discover(agent) -> dict[str, str]:
     return {r["data"]["role"]: n for n, r in replies.items() if r and r.get("type") == "whoami"}
 
 
-def ask(agent, roles: dict[str, str], requests: dict[str, dict], timeout: float = 60) -> dict[str, dict | None]:
-    """Send {role: envelope} in parallel. Returns {role: reply data, or None if offline/timeout/error}."""
+def ask(agent, roles: dict[str, str], requests: dict[str, dict], timeout: float = 60,
+        errors: dict[str, str] | None = None) -> dict[str, dict | None]:
+    """Send {role: envelope} in parallel. Returns {role: reply data, or None if offline/timeout/error}.
+
+    If `errors` is given, each failed role's reason is stored there.
+    """
     # TODO(coordinator owner): 200 s watchdog from the spec.
     online = {r: e for r, e in requests.items() if r in roles}
     for r in requests.keys() - online.keys():
@@ -29,5 +33,7 @@ def ask(agent, roles: dict[str, str], requests: dict[str, dict], timeout: float 
             out[r] = reply["data"]
         else:
             reason = reply["data"]["message"] if reply else "no reply"
+            if errors is not None:
+                errors[r] = reason
             grid.say(agent, f"- {r} agent missing: {reason}\n")
     return out
