@@ -1,12 +1,13 @@
-"""Travel agent: owns data/travel.json. Request type: travel. Uses the model and Google Maps.
+"""Travel agent: driving distance and time from the family's ZIP to each hospital. Request type: travel.
 
-The agent gets drive times with a tool that calls the Google Maps Routes API (needs GOOGLE_MAPS_API_KEY).
-Note: this sends the patient's lat/lon to Google. Without a key, or if Google fails, times are estimated
-from straight-line distance (spec formula). Numbers in the reply come from tools, never the model.
+Data: artificial_hospital_data_california.csv (hospital name -> ZIP). Drive times come from the Google Maps
+Routes API (needs GOOGLE_MAPS_API_KEY), routed ZIP to ZIP: the hospitals are fictional, so Google gets
+their ZIPs, and only the family's ZIP (never an address) leaves this node. Numbers come from the tool,
+never the model; without Google the agent errors and the coordinator ranks without distance.
 """
 
+import csv
 import json
-import math
 import os
 import urllib.request
 from pathlib import Path
@@ -15,21 +16,26 @@ from agents import Agent, RunContextWrapper, function_tool
 
 from calendula import llm
 
-PROMPT = """You find how far a patient is from hospitals. Call drive_times once with all of the
-request's hospital_ids."""
-
+HOSPITALS = "artificial_hospital_data_california.csv"
 ROUTES_URL = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix"
+MAX_MINUTES = 240  # a 4 h drive scores 0
+
+PROMPT = """You find how far a family lives from hospitals. Call drive_times once with the hospital
+names you need (all of the request's hospitals, or the ones the question is about)."""
 
 
-def _point(lat: float, lon: float) -> dict:
-    return {"waypoint": {"location": {"latLng": {"latitude": lat, "longitude": lon}}}}
+def load(data_dir: Path) -> dict:
+    with open(data_dir / HOSPITALS, newline="") as f:
+        return {r["Hospital Name"]: r["ZIP Code"].strip() for r in csv.DictReader(f)}
 
 
-def google(lat: float, lon: float, hospitals: dict[str, dict]) -> dict[str, dict]:
-    """Driving miles/minutes from (lat, lon) to each hospital via Routes API. Raises on any failure."""
-    ids = list(hospitals)
-    body = {"origins": [_point(lat, lon)], "travelMode": "DRIVE",
-            "destinations": [_point(hospitals[h]["lat"], hospitals[h]["lon"]) for h in ids]}
+def _zip(z: str) -> dict:
+    return {"waypoint": {"address": f"{z}, CA, USA"}}
+
+
+def google(origin_zip: str, dest_zips: list[str]) -> list[dict | None]:
+    """Driving {miles, minutes} from origin_zip to each dest ZIP (None if no route). Raises on API failure."""
+    body = {"origins": [_zip(origin_zip)], "destinations": [_zip(z) for z in dest_zips], "travelMode": "DRIVE"}
     req = urllib.request.Request(ROUTES_URL, data=json.dumps(body).encode(), headers={
         "Content-Type": "application/json",
         "X-Goog-Api-Key": os.environ["GOOGLE_MAPS_API_KEY"],
@@ -37,49 +43,50 @@ def google(lat: float, lon: float, hospitals: dict[str, dict]) -> dict[str, dict
     })
     with urllib.request.urlopen(req, timeout=15) as resp:
         elements = json.load(resp)
-    return {
-        ids[e["destinationIndex"]]: {"miles": round(e["distanceMeters"] / 1609.344, 1),
-                                     "minutes": round(int(e["duration"].rstrip("s")) / 60, 1)}
-        for e in elements if e.get("condition") == "ROUTE_EXISTS"
-    }
+    out: list[dict | None] = [None] * len(dest_zips)
+    for e in elements:
+        if e.get("condition") == "ROUTE_EXISTS":
+            out[e["destinationIndex"]] = {"miles": round(e["distanceMeters"] / 1609.344, 1),
+                                          "minutes": round(int(e["duration"].rstrip("s")) / 60)}
+    return out
 
 
-def estimate(lat: float, lon: float, h: dict, data: dict) -> dict:
-    """Haversine miles x road_factor at avg_mph."""
-    p1, p2 = math.radians(lat), math.radians(h["lat"])
-    a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(h["lon"] - lon) / 2) ** 2
-    road = 3958.8 * 2 * math.asin(math.sqrt(a)) * data["road_factor"]
-    return {"miles": round(road, 1), "minutes": round(road / data["avg_mph"] * 60, 1)}
+def times(data: dict, origin_zip: str, hospitals: list[str]) -> dict[str, dict]:
+    """{hospital: {miles, minutes}} for the hospitals we know and Google can route to."""
+    known = [h for h in dict.fromkeys(hospitals) if h in data]
+    if not known:
+        return {}
+    return {h: t for h, t in zip(known, google(origin_zip, [data[h] for h in known])) if t}
 
 
 @function_tool
-def drive_times(ctx: RunContextWrapper[dict], hospital_ids: list[str]) -> dict[str, dict]:
-    """Driving miles and minutes from the patient to each hospital (Google Maps)."""
+def drive_times(ctx: RunContextWrapper[dict], hospitals: list[str]) -> dict[str, dict]:
+    """Driving miles and minutes from the family's home to each named hospital (Google Maps)."""
     c = ctx.context
-    known = {h: c["data"]["hospitals"][h] for h in hospital_ids if h in c["data"]["hospitals"]}
-    found = google(c["lat"], c["lon"], known)
+    found = times(c["data"], c["zip"], hospitals)
     c["seen"].update(found)
     return found
 
 
-# Results land in ctx["seen"]; stop right after the tool instead of asking the model to summarize.
 AGENT = Agent(name="travel", instructions=PROMPT, tools=[drive_times], tool_use_behavior="stop_on_first_tool")
 
 
-def load(data_dir: Path) -> dict:
-    return json.loads((data_dir / "travel.json").read_text())
+def note(t: dict) -> str:
+    h, m = divmod(t["minutes"], 60)
+    return f"{t['miles']} mi, about {f'{h} h {m} min' if h else f'{m} min'} drive"
 
 
 def handle(req: dict, data: dict) -> dict:
-    lat, lon = req["lat"], req["lon"]
-    ctx = {"data": data, "lat": lat, "lon": lon, "seen": {}}
-    # The model never sees the patient's coordinates; drive_times reads them from ctx.
-    llm.run_agent(AGENT, {"hospital_ids": req["hospital_ids"]}, ctx)
-    known = {h: data["hospitals"][h] for h in req["hospital_ids"] if h in data["hospitals"]}
-    missing = {h: v for h, v in known.items() if h not in ctx["seen"]}
-    if missing and os.environ.get("GOOGLE_MAPS_API_KEY"):  # agent skipped or failed: call Google directly
-        try:
-            ctx["seen"].update(google(lat, lon, missing))
-        except Exception:  # noqa: BLE001 - estimate below
-            pass
-    return {"travel": {h: ctx["seen"].get(h) or estimate(lat, lon, v, data) for h, v in known.items()}}
+    origin = str(req["case"]["zip"]).strip()
+    if not (origin.isdigit() and len(origin) == 5):
+        raise ValueError(f"invalid ZIP {origin!r}")
+    ctx = {"data": data, "zip": origin, "seen": {}}
+    # The model never sees the family's ZIP; drive_times reads it from ctx.
+    llm.run_agent(AGENT, {"hospitals": req["hospitals"]}, ctx)
+    missing = [h for h in req["hospitals"] if h not in ctx["seen"]]
+    if missing:  # agent skipped or failed: call Google directly (raises if Google is down or unconfigured)
+        ctx["seen"].update(times(data, origin, missing))
+    return {"scores": [{"name": h, "kind": "hospital", "hospital": h,
+                        "score": round(max(0.0, 1 - t["minutes"] / MAX_MINUTES), 3), "note": note(t),
+                        "miles": t["miles"], "minutes": t["minutes"]}
+                       for h in req["hospitals"] if (t := ctx["seen"].get(h))]}

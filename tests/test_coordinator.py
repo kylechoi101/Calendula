@@ -1,11 +1,12 @@
 """Whole conversations run in-process through the fake grid. No model: intake uses its keyword fallback,
-explain its template. Insurance, hospital and travel are protocol-v2 stand-ins (stub_workers.py)."""
+explain its template. All workers are real; Google Maps is faked."""
 
 import pytest
 
 from calendula import coordinator, workers
+from calendula.workers import insurance, travel
 from fake_grid import FakeAgent
-from stub_workers import STUBS
+from test_travel import fake_google
 
 FULL = ("My 8-year-old daughter Emily was just diagnosed with medulloblastoma. We live in 95816 and have "
         "SierraCare Health Plan. Being close to home matters most, and the surgeon's experience.")
@@ -13,9 +14,8 @@ ROLES = ("insurance", "review", "hospital", "travel")
 
 
 @pytest.fixture(autouse=True)
-def stubs(monkeypatch):
-    for role, mod in STUBS.items():
-        monkeypatch.setitem(workers.WORKERS, role, mod)
+def offline(monkeypatch):
+    monkeypatch.setattr(travel, "google", fake_google)
     monkeypatch.setattr(workers, "_data", {})
 
 
@@ -50,7 +50,7 @@ def test_full_match_flow():
     assert "Top doctors" in text and "Top hospitals" in text
     sent = calls(agent)
     assert sent[0] == ("insurance", sent[0][1]) and sent[0][1]["data"] == {"insurer": "SierraCare Health Plan"}
-    covered = set(STUBS["insurance"].load(workers.DATA_DIR)["SierraCare Health Plan"])
+    covered = set(insurance.load(workers.DATA_DIR)["SierraCare Health Plan"])
     for role, env in sent[1:]:
         assert set(env["data"]) == {"hospitals", "case"}
         assert set(env["data"]["hospitals"]) == covered

@@ -5,15 +5,22 @@ import json
 import pytest
 
 from calendula import protocol, workers
+from calendula.workers import travel
+from test_travel import fake_google
 
 
 # Teammates are moving these workers to protocol v2; drop a role from here once it passes.
-PENDING_V2 = {"insurance", "travel"}
+PENDING_V2: set[str] = set()
 
 
 def v2(role):
     return pytest.param(role, marks=pytest.mark.xfail(reason="worker not on protocol v2 yet")) \
         if role in PENDING_V2 else role
+
+
+@pytest.fixture(autouse=True)
+def offline_maps(monkeypatch):
+    monkeypatch.setattr(travel, "google", fake_google)
 
 
 def ask(role, type_, data):
