@@ -1,0 +1,31 @@
+Hospital Name,ZIP Code,Mortality Rate (%),Hospital Ranking,Annual Cases,Number of Specialized Doctors,Patients per Doctor,Wait Time (Days)
+Pacific Crest Medical Center,94305,6.9,1,1080,21,51.4,25
+Golden Gate Specialty Hospital,94143,7.6,2,940,18,52.2,19
+Sierra Advanced Medical Center,95817,7.2,3,815,15,54.3,15
+Westwood Institute of Medicine,90024,8.1,4,1160,23,50.4,29
+Sequoia Valley Medical Center,94063,7.8,5,735,16,45.9,17
+Bayview University Hospital,94609,8.6,6,890,14,63.6,13
+San Gabriel Medical Institute,91105,7.5,7,680,13,52.3,20
+Coastal California Medical Center,92037,8.9,8,845,18,46.9,24
+Redwood Hills Hospital,95403,8.3,9,575,11,52.3,9
+Monterey Bay Medical Institute,93940,9.4,10,630,14,45.0,12
+Orange Coast Specialty Center,92660,8.7,11,755,12,62.9,16
+Sacramento Valley Hospital,95816,8.0,12,665,13,51.2,8
+Santa Clara Medical Institute,95050,9.8,13,710,15,47.3,11
+Pacific Horizon Hospital,93105,9.1,14,485,9,53.9,7
+East Bay Advanced Care Center,94538,10.5,15,610,12,50.8,6
+San Joaquin Medical Center,95204,9.7,16,455,8,56.9,10
+North Coast Specialty Hospital,95501,10.9,17,340,7,48.6,5
+Mission Valley Medical Center,92108,9.3,18,625,10,62.5,14
+Central Valley Medical Institute,93720,11.3,19,565,11,51.4,8
+Ventura Pacific Hospital,93003,10.1,20,430,10,43.0,7
+Inland Empire Specialty Center,92501,11.8,21,520,8,65.0,6
+Sonoma Regional Medical Center,95404,10.6,22,385,9,42.8,5
+South Bay Medical Institute,90505,12.4,23,475,7,67.9,9
+Napa Valley Specialty Hospital,94558,11.2,24,325,8,40.6,4
+Santa Cruz Coastal Hospital,95065,12.9,25,405,6,67.5,5
+Riverside Advanced Medical Center,92506,11.5,26,450,9,50.0,7
+Bakersfield Regional Institute,93301,13.6,27,395,6,65.8,4
+San Luis Coastal Medical Center,93401,12.1,28,295,7,42.1,6
+North Valley Medical Center,96001,14.1,29,260,5,52.0,3
+Imperial California Hospital,92243,13.2,30,245,6,40.8,4

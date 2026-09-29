@@ -1,0 +1,151 @@
+Doctor ID,Doctor Name,Hospital Affiliated,Hospital Name,Hospital Ranking,Medulloblastoma Experience,Pediatric High-Grade Glioma Experience,Ependymoma Experience,Research Score,Surgical Expertise (Years)
+DOC-001,Dr. Olivia Chen,Yes,Pacific Crest Medical Center,1,Yes,Yes,Yes,8.6,8
+DOC-002,Dr. Ethan Martinez,Yes,Pacific Crest Medical Center,1,Yes,No,Yes,6.9,19
+DOC-003,Dr. Maya Thomas,Yes,Pacific Crest Medical Center,1,Yes,Yes,No,6.8,28
+DOC-004,Dr. Daniel Harris,Yes,Pacific Crest Medical Center,1,No,Yes,Yes,7.1,13
+DOC-005,Dr. Sophia King,Yes,Pacific Crest Medical Center,1,Yes,Yes,Yes,8.1,16
+DOC-006,Dr. Noah Campbell,Yes,Golden Gate Specialty Hospital,2,Yes,Yes,No,6.6,26
+DOC-007,Dr. Ava Torres,Yes,Golden Gate Specialty Hospital,2,Yes,No,No,6.6,20
+DOC-008,Dr. Lucas Chen,Yes,Golden Gate Specialty Hospital,2,No,Yes,Yes,6.5,17
+DOC-009,Dr. Isabella Martinez,Yes,Golden Gate Specialty Hospital,2,Yes,No,Yes,8.3,30
+DOC-010,Dr. Mateo Thomas,Yes,Golden Gate Specialty Hospital,2,Yes,Yes,No,6.2,7
+DOC-011,Dr. Emma Clark,Yes,Sierra Advanced Medical Center,3,Yes,No,Yes,10,20
+DOC-012,Dr. Liam Wright,Yes,Sierra Advanced Medical Center,3,Yes,Yes,Yes,6.2,24
+DOC-013,Dr. Amelia Campbell,Yes,Sierra Advanced Medical Center,3,No,Yes,No,9.4,23
+DOC-014,Dr. Henry Torres,Yes,Sierra Advanced Medical Center,3,Yes,Yes,Yes,6.4,17
+DOC-015,Dr. Mia Chen,Yes,Sierra Advanced Medical Center,3,Yes,Yes,No,8.5,17
+DOC-016,Dr. Julian Lee,Yes,Westwood Institute of Medicine,4,No,Yes,Yes,6.7,16
+DOC-017,Dr. Camila Taylor,Yes,Westwood Institute of Medicine,4,Yes,Yes,Yes,7.4,11
+DOC-018,Dr. Leo Clark,Yes,Westwood Institute of Medicine,4,Yes,Yes,Yes,5.9,26
+DOC-019,Dr. Elena Wright,Yes,Westwood Institute of Medicine,4,Yes,No,No,8.5,28
+DOC-020,Dr. Adrian Campbell,Yes,Westwood Institute of Medicine,4,Yes,No,No,7.0,8
+DOC-021,Dr. Nora Parker,Yes,Sequoia Valley Medical Center,5,No,Yes,Yes,8.1,17
+DOC-022,Dr. Samuel Ramirez,Yes,Sequoia Valley Medical Center,5,Yes,No,Yes,5.1,10
+DOC-023,Dr. Zoe Lee,Yes,Sequoia Valley Medical Center,5,Yes,Yes,No,8.2,18
+DOC-024,Dr. Gabriel Taylor,Yes,Sequoia Valley Medical Center,5,No,Yes,Yes,8.0,5
+DOC-025,Dr. Layla Clark,Yes,Sequoia Valley Medical Center,5,Yes,Yes,Yes,8.3,25
+DOC-026,Dr. Owen Scott,Yes,Bayview University Hospital,6,Yes,Yes,Yes,7.7,10
+DOC-027,Dr. Clara Mitchell,Yes,Bayview University Hospital,6,No,No,Yes,8.6,16
+DOC-028,Dr. Isaac Parker,Yes,Bayview University Hospital,6,No,Yes,No,7.7,6
+DOC-029,Dr. Naomi Ramirez,Yes,Bayview University Hospital,6,No,No,Yes,8.5,4
+DOC-030,Dr. Nathan Lee,Yes,Bayview University Hospital,6,Yes,No,No,8.0,30
+DOC-031,Dr. Chloe Moore,Yes,San Gabriel Medical Institute,7,Yes,No,No,7.6,22
+DOC-032,Dr. Caleb Lewis,Yes,San Gabriel Medical Institute,7,No,Yes,No,7.5,14
+DOC-033,Dr. Lena Scott,Yes,San Gabriel Medical Institute,7,Yes,Yes,No,6.7,22
+DOC-034,Dr. Aaron Mitchell,Yes,San Gabriel Medical Institute,7,Yes,Yes,Yes,9.2,19
+DOC-035,Dr. Grace Parker,Yes,San Gabriel Medical Institute,7,Yes,No,Yes,7.3,22
+DOC-036,Dr. Miles Patel,Yes,Coastal California Medical Center,8,Yes,Yes,Yes,6.0,22
+DOC-037,Dr. Eva Johnson,Yes,Coastal California Medical Center,8,Yes,Yes,Yes,6.9,17
+DOC-038,Dr. Jonah Moore,Yes,Coastal California Medical Center,8,No,No,Yes,7.1,20
+DOC-039,Dr. Ruby Lewis,Yes,Coastal California Medical Center,8,No,Yes,No,8.9,7
+DOC-040,Dr. Elias Scott,Yes,Coastal California Medical Center,8,No,Yes,Yes,5.4,17
+DOC-041,Dr. Alice Roberts,Yes,Redwood Hills Hospital,9,Yes,Yes,No,7.1,6
+DOC-042,Dr. Theo Collins,Yes,Redwood Hills Hospital,9,Yes,Yes,Yes,7.0,6
+DOC-043,Dr. Iris Patel,Yes,Redwood Hills Hospital,9,Yes,No,Yes,6.7,28
+DOC-044,Dr. Simon Johnson,Yes,Redwood Hills Hospital,9,Yes,Yes,Yes,9.1,16
+DOC-045,Dr. Julia Moore,Yes,Redwood Hills Hospital,9,No,Yes,Yes,7.6,23
+DOC-046,Dr. Adam Robinson,Yes,Monterey Bay Medical Institute,10,Yes,Yes,Yes,6.0,12
+DOC-047,Dr. Leah Green,Yes,Monterey Bay Medical Institute,10,Yes,No,Yes,7.7,10
+DOC-048,Dr. Max Roberts,Yes,Monterey Bay Medical Institute,10,Yes,Yes,No,5.3,25
+DOC-049,Dr. Sarah Collins,Yes,Monterey Bay Medical Institute,10,No,Yes,Yes,8.9,24
+DOC-050,Dr. David Patel,Yes,Monterey Bay Medical Institute,10,Yes,No,Yes,7.4,9
+DOC-051,Dr. Olivia Brown,Yes,Orange Coast Specialty Center,11,No,Yes,Yes,8.3,24
+DOC-052,Dr. Ethan Jackson,Yes,Orange Coast Specialty Center,11,Yes,No,Yes,6.8,28
+DOC-053,Dr. Maya Robinson,Yes,Orange Coast Specialty Center,11,Yes,No,No,8.3,14
+DOC-054,Dr. Daniel Green,Yes,Orange Coast Specialty Center,11,No,No,Yes,6.4,8
+DOC-055,Dr. Sophia Roberts,Yes,Orange Coast Specialty Center,11,Yes,Yes,Yes,7.4,11
+DOC-056,Dr. Noah Edwards,Yes,Sacramento Valley Hospital,12,Yes,No,Yes,8.1,15
+DOC-057,Dr. Ava Kim,Yes,Sacramento Valley Hospital,12,No,Yes,Yes,4.2,14
+DOC-058,Dr. Lucas Brown,Yes,Sacramento Valley Hospital,12,Yes,No,Yes,7.6,22
+DOC-059,Dr. Isabella Jackson,Yes,Sacramento Valley Hospital,12,No,Yes,No,6.2,25
+DOC-060,Dr. Mateo Robinson,Yes,Sacramento Valley Hospital,12,Yes,Yes,Yes,8.8,15
+DOC-061,Dr. Emma Baker,Yes,Santa Clara Medical Institute,13,Yes,Yes,Yes,7.7,26
+DOC-062,Dr. Liam Carter,Yes,Santa Clara Medical Institute,13,No,Yes,Yes,6.6,29
+DOC-063,Dr. Amelia Edwards,Yes,Santa Clara Medical Institute,13,No,Yes,No,7.2,15
+DOC-064,Dr. Henry Kim,Yes,Santa Clara Medical Institute,13,Yes,Yes,No,7.0,25
+DOC-065,Dr. Mia Brown,Yes,Santa Clara Medical Institute,13,No,Yes,Yes,8.0,29
+DOC-066,Dr. Julian Martin,Yes,Pacific Horizon Hospital,14,Yes,Yes,Yes,8.7,24
+DOC-067,Dr. Camila Walker,Yes,Pacific Horizon Hospital,14,Yes,No,Yes,5.9,21
+DOC-068,Dr. Leo Baker,Yes,Pacific Horizon Hospital,14,Yes,Yes,No,6.4,19
+DOC-069,Dr. Elena Carter,Yes,Pacific Horizon Hospital,14,No,No,Yes,6.2,22
+DOC-070,Dr. Adrian Edwards,Yes,Pacific Horizon Hospital,14,Yes,Yes,Yes,8.6,23
+DOC-071,Dr. Nora Nguyen,Yes,East Bay Advanced Care Center,15,Yes,Yes,No,7.3,12
+DOC-072,Dr. Samuel Davis,Yes,East Bay Advanced Care Center,15,Yes,No,No,8.9,23
+DOC-073,Dr. Zoe Martin,Yes,East Bay Advanced Care Center,15,No,Yes,No,5.8,16
+DOC-074,Dr. Gabriel Walker,Yes,East Bay Advanced Care Center,15,No,Yes,No,9.9,20
+DOC-075,Dr. Layla Baker,Yes,East Bay Advanced Care Center,15,Yes,No,Yes,6.3,20
+DOC-076,Dr. Owen Phillips,Yes,San Joaquin Medical Center,16,Yes,No,No,8.6,11
+DOC-077,Dr. Clara Stewart,Yes,San Joaquin Medical Center,16,Yes,Yes,Yes,7.3,24
+DOC-078,Dr. Isaac Nguyen,Yes,San Joaquin Medical Center,16,Yes,Yes,Yes,6.1,9
+DOC-079,Dr. Naomi Davis,Yes,San Joaquin Medical Center,16,No,Yes,No,5.9,20
+DOC-080,Dr. Nathan Martin,Yes,San Joaquin Medical Center,16,Yes,No,Yes,7.4,23
+DOC-081,Dr. Chloe Young,Yes,North Coast Specialty Hospital,17,Yes,No,No,7.6,28
+DOC-082,Dr. Caleb Adams,Yes,North Coast Specialty Hospital,17,Yes,Yes,No,7.3,13
+DOC-083,Dr. Lena Phillips,Yes,North Coast Specialty Hospital,17,Yes,Yes,Yes,10,23
+DOC-084,Dr. Aaron Stewart,Yes,North Coast Specialty Hospital,17,Yes,No,Yes,7.1,12
+DOC-085,Dr. Grace Nguyen,Yes,North Coast Specialty Hospital,17,Yes,Yes,No,5.3,14
+DOC-086,Dr. Miles Wilson,Yes,Mission Valley Medical Center,18,Yes,No,Yes,5.1,20
+DOC-087,Dr. Eva Thompson,Yes,Mission Valley Medical Center,18,Yes,Yes,Yes,6.0,13
+DOC-088,Dr. Jonah Young,Yes,Mission Valley Medical Center,18,Yes,Yes,Yes,7.2,22
+DOC-089,Dr. Ruby Adams,Yes,Mission Valley Medical Center,18,No,Yes,No,6.4,18
+DOC-090,Dr. Elias Phillips,Yes,Mission Valley Medical Center,18,Yes,No,No,6.7,14
+DOC-091,Dr. Alice Morris,Yes,Central Valley Medical Institute,19,Yes,No,Yes,6.8,26
+DOC-092,Dr. Theo Garcia,Yes,Central Valley Medical Institute,19,Yes,Yes,Yes,6.5,10
+DOC-093,Dr. Iris Wilson,Yes,Central Valley Medical Institute,19,Yes,Yes,Yes,5.7,5
+DOC-094,Dr. Simon Thompson,Yes,Central Valley Medical Institute,19,No,No,Yes,6.7,7
+DOC-095,Dr. Julia Young,Yes,Central Valley Medical Institute,19,No,Yes,Yes,6.5,14
+DOC-096,Dr. Adam Nelson,Yes,Ventura Pacific Hospital,20,No,Yes,Yes,5.7,10
+DOC-097,Dr. Leah Evans,Yes,Ventura Pacific Hospital,20,Yes,No,Yes,9.0,15
+DOC-098,Dr. Max Morris,Yes,Ventura Pacific Hospital,20,Yes,Yes,Yes,4.9,20
+DOC-099,Dr. Sarah Garcia,Yes,Ventura Pacific Hospital,20,Yes,Yes,No,7.1,18
+DOC-100,Dr. David Wilson,Yes,Ventura Pacific Hospital,20,No,Yes,No,7.1,25
+DOC-101,Dr. Olivia White,Yes,Inland Empire Specialty Center,21,Yes,Yes,No,7.6,4
+DOC-102,Dr. Ethan Allen,Yes,Inland Empire Specialty Center,21,No,Yes,No,5.9,19
+DOC-103,Dr. Maya Nelson,Yes,Inland Empire Specialty Center,21,Yes,No,Yes,7.0,11
+DOC-104,Dr. Daniel Evans,Yes,Inland Empire Specialty Center,21,Yes,Yes,Yes,5.7,13
+DOC-105,Dr. Sophia Morris,Yes,Inland Empire Specialty Center,21,No,Yes,Yes,6.3,24
+DOC-106,Dr. Noah Williams,Yes,Sonoma Regional Medical Center,22,No,Yes,No,6.5,23
+DOC-107,Dr. Ava Anderson,Yes,Sonoma Regional Medical Center,22,Yes,No,No,7.8,6
+DOC-108,Dr. Lucas White,Yes,Sonoma Regional Medical Center,22,No,No,Yes,6.6,10
+DOC-109,Dr. Isabella Allen,Yes,Sonoma Regional Medical Center,22,No,Yes,Yes,7.5,11
+DOC-110,Dr. Mateo Nelson,Yes,Sonoma Regional Medical Center,22,Yes,Yes,Yes,7.5,22
+DOC-111,Dr. Emma Turner,Yes,South Bay Medical Institute,23,Yes,No,No,7.4,4
+DOC-112,Dr. Liam Rogers,Yes,South Bay Medical Institute,23,Yes,No,Yes,6.6,20
+DOC-113,Dr. Amelia Williams,Yes,South Bay Medical Institute,23,Yes,No,Yes,6.6,28
+DOC-114,Dr. Henry Anderson,Yes,South Bay Medical Institute,23,No,Yes,No,6.9,15
+DOC-115,Dr. Mia White,Yes,South Bay Medical Institute,23,No,No,Yes,6.8,9
+DOC-116,Dr. Julian King,Yes,Napa Valley Specialty Hospital,24,No,No,Yes,5.7,22
+DOC-117,Dr. Camila Hill,Yes,Napa Valley Specialty Hospital,24,No,No,Yes,8.9,8
+DOC-118,Dr. Leo Turner,Yes,Napa Valley Specialty Hospital,24,Yes,No,Yes,6.2,11
+DOC-119,Dr. Elena Rogers,Yes,Napa Valley Specialty Hospital,24,No,Yes,Yes,9.0,14
+DOC-120,Dr. Adrian Williams,Yes,Napa Valley Specialty Hospital,24,Yes,Yes,No,6.4,21
+DOC-121,Dr. Nora Thomas,Yes,Santa Cruz Coastal Hospital,25,Yes,Yes,No,10,19
+DOC-122,Dr. Samuel Harris,Yes,Santa Cruz Coastal Hospital,25,Yes,Yes,Yes,4.6,6
+DOC-123,Dr. Zoe King,Yes,Santa Cruz Coastal Hospital,25,No,No,Yes,6.5,17
+DOC-124,Dr. Gabriel Hill,Yes,Santa Cruz Coastal Hospital,25,No,Yes,No,5.0,22
+DOC-125,Dr. Layla Turner,Yes,Santa Cruz Coastal Hospital,25,No,Yes,Yes,7.1,29
+DOC-126,Dr. Owen Chen,Yes,Riverside Advanced Medical Center,26,Yes,No,Yes,6.3,29
+DOC-127,Dr. Clara Martinez,Yes,Riverside Advanced Medical Center,26,No,No,Yes,7.2,5
+DOC-128,Dr. Isaac Thomas,Yes,Riverside Advanced Medical Center,26,Yes,Yes,Yes,7.6,27
+DOC-129,Dr. Naomi Harris,Yes,Riverside Advanced Medical Center,26,No,No,Yes,4.8,5
+DOC-130,Dr. Nathan King,Yes,Riverside Advanced Medical Center,26,Yes,No,No,5.5,17
+DOC-131,Dr. Chloe Campbell,Yes,Bakersfield Regional Institute,27,Yes,Yes,Yes,5.1,25
+DOC-132,Dr. Caleb Torres,Yes,Bakersfield Regional Institute,27,Yes,Yes,No,7.9,16
+DOC-133,Dr. Lena Chen,Yes,Bakersfield Regional Institute,27,Yes,No,No,7.9,23
+DOC-134,Dr. Aaron Martinez,Yes,Bakersfield Regional Institute,27,Yes,No,Yes,6.8,16
+DOC-135,Dr. Grace Thomas,Yes,Bakersfield Regional Institute,27,No,Yes,Yes,7.7,19
+DOC-136,Dr. Miles Clark,Yes,San Luis Coastal Medical Center,28,Yes,Yes,No,6.9,25
+DOC-137,Dr. Eva Wright,Yes,San Luis Coastal Medical Center,28,Yes,Yes,Yes,7.0,19
+DOC-138,Dr. Jonah Campbell,Yes,San Luis Coastal Medical Center,28,No,Yes,No,7.3,4
+DOC-139,Dr. Ruby Torres,Yes,San Luis Coastal Medical Center,28,Yes,No,No,5.1,23
+DOC-140,Dr. Elias Chen,Yes,San Luis Coastal Medical Center,28,No,No,Yes,9.5,6
+DOC-141,Dr. Alice Lee,Yes,North Valley Medical Center,29,No,No,Yes,5.3,12
+DOC-142,Dr. Theo Taylor,Yes,North Valley Medical Center,29,Yes,No,Yes,7.5,25
+DOC-143,Dr. Iris Clark,Yes,North Valley Medical Center,29,Yes,No,No,8.1,23
+DOC-144,Dr. Simon Wright,Yes,North Valley Medical Center,29,Yes,Yes,No,7.0,23
+DOC-145,Dr. Julia Campbell,Yes,North Valley Medical Center,29,No,Yes,Yes,7.5,30
+DOC-146,Dr. Adam Parker,Yes,Imperial California Hospital,30,Yes,Yes,Yes,6.5,20
+DOC-147,Dr. Leah Ramirez,Yes,Imperial California Hospital,30,Yes,Yes,Yes,6.8,14
+DOC-148,Dr. Max Lee,Yes,Imperial California Hospital,30,No,Yes,No,8.0,18
+DOC-149,Dr. Sarah Taylor,Yes,Imperial California Hospital,30,No,Yes,No,5.7,12
+DOC-150,Dr. David Clark,Yes,Imperial California Hospital,30,Yes,Yes,No,8.5,25
