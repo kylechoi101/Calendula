@@ -44,8 +44,16 @@ def google(origin_zip: str, dest_zips: list[str]) -> list[dict | None]:
         "X-Goog-Api-Key": key,
         "X-Goog-FieldMask": "destinationIndex,distanceMeters,duration,condition",
     })
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        elements = json.load(resp)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            elements = json.load(resp)
+    except urllib.error.HTTPError as e:  # surface Google's reason ("API key expired", "API not enabled", ...)
+        body = e.read().decode(errors="replace")
+        try:
+            reason = (json.loads(body)[0] if body.startswith("[") else json.loads(body))["error"]["message"]
+        except (ValueError, KeyError, IndexError, TypeError):
+            reason = body[:200]
+        raise RuntimeError(f"Google Routes {e.code}: {reason}") from None
     out: list[dict | None] = [None] * len(dest_zips)
     for e in elements:
         if e.get("condition") == "ROUTE_EXISTS":
