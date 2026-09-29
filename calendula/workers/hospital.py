@@ -1,59 +1,76 @@
-"""Hospital agent: owns data/hospital.json. Request type: hospitals. Uses the model.
+"""Hospital agent: owns the hospital outcomes and capacity data. Request type: hospitals. No model.
 
-The agent matches the patient's condition to the hospital's outcome records (e.g. "afib" ->
-"atrial fibrillation") via tools; the numbers in the reply come from data, never the model.
+Data: artificial_hospital_data_california.csv (one row per hospital).
+Input:  {"hospitals": ["Pacific Crest Medical Center", ...], "case": {...},   # case isn't needed here
+         "weights": {"Mortality Rate (%)": 5, "Wait Time (Days)": 2, ...}}   # optional, from the orchestrator
+Output: {"scores": [{"name": h, "kind": "hospital", "hospital": h, "score": 0.83,
+                     "note": "6.9% mortality, 1080 cases/yr, 25-day wait"}, ...]}, in request order
+        (unsorted: the orchestrator ranks).
+
+Only the requested hospitals are scored, against each other: each metric is min-max scaled within the list
+(best = 1; one hospital or all equal -> 0.5), then combined with the weights the orchestrator sends: any
+non-negative numbers keyed by the metric columns, rescaled to sum to 1 so scores stay in 0..1; a metric left
+out gets 0; no weights -> DEFAULT_WEIGHTS. Unknown metric names, negative or all-zero weights are an error.
+The coordinator then weights this whole score by the parent's "hospital_quality" priority.
+Hospital Ranking and Number of Specialized Doctors are not scored: they track mortality and case volume
+almost exactly, so they would count quality twice.
+Unknown names are skipped; duplicates are scored once. Scores and notes come from the data, never a model.
 """
 
-import json
+import csv
 from pathlib import Path
 
-from agents import Agent, RunContextWrapper, function_tool
+HOSPITALS = "artificial_hospital_data_california.csv"
 
-from calendula import llm
-
-PROMPT = """You look up hospitals for a patient. For every hospital id in the request, call
-list_conditions, pick the recorded condition that matches the request's condition (or none if no
-record matches), then call get_hospital with that exact name (or null). Reply "done" when finished."""
-
-
-def lookup(data: dict, hid: str, condition: str | None, specialty: str) -> dict | None:
-    h = data["hospitals"].get(hid)
-    if h is None:
-        return None
-    o = h.get("outcomes", {}).get(condition or "", {})
-    return {"name": h["name"], "ranking": h["ranking"], "doctor_patient_ratio": h["doctor_patient_ratio"],
-            "mortality": o.get("mortality"), "case_volume": o.get("case_volume"),
-            "wait_days": h.get("wait_days", {}).get(specialty)}
-
-
-@function_tool
-def list_conditions(ctx: RunContextWrapper[dict], hospital_id: str) -> list[str]:
-    """Conditions this hospital has outcome records for."""
-    return list(ctx.context["data"]["hospitals"].get(hospital_id, {}).get("outcomes", {}))
-
-
-@function_tool
-def get_hospital(ctx: RunContextWrapper[dict], hospital_id: str, condition: str | None) -> dict | None:
-    """Ranking, staffing, wait days and outcomes for one hospital. condition must be from list_conditions."""
-    found = lookup(ctx.context["data"], hospital_id, condition, ctx.context["specialty"])
-    ctx.context["seen"][hospital_id] = found
-    return found
-
-
-# No output_type: results are captured by get_hospital into ctx["seen"]; the final text is ignored.
-AGENT = Agent(name="hospital", instructions=PROMPT, tools=[list_conditions, get_hospital])
+HIGHER_IS_BETTER = {
+    "Mortality Rate (%)": False,
+    "Wait Time (Days)": False,
+    "Annual Cases": True,
+    "Patients per Doctor": False,
+}
+DEFAULT_WEIGHTS = {"Mortality Rate (%)": 0.4, "Wait Time (Days)": 0.3, "Annual Cases": 0.2, "Patients per Doctor": 0.1}
 
 
 def load(data_dir: Path) -> dict:
-    return json.loads((data_dir / "hospital.json").read_text())
+    with open(data_dir / HOSPITALS, newline="") as f:
+        return {"hospitals": {r["Hospital Name"]: {col: float(r[col]) for col in HIGHER_IS_BETTER}
+                              for r in csv.DictReader(f)}}
+
+
+def scaled(values: list[float], higher_is_better: bool) -> list[float]:
+    lo, hi = min(values), max(values)
+    if hi == lo:
+        return [0.5] * len(values)
+    return [(v - lo) / (hi - lo) if higher_is_better else (hi - v) / (hi - lo) for v in values]
+
+
+def note(h: dict) -> str:
+    return (f"{h['Mortality Rate (%)']:g}% mortality, {h['Annual Cases']:.0f} cases/yr, "
+            f"{h['Wait Time (Days)']:.0f}-day wait")
+
+
+def weights(given: dict | None) -> dict[str, float]:
+    """Orchestrator weights rescaled to sum to 1; DEFAULT_WEIGHTS when none are given."""
+    if not given:
+        return DEFAULT_WEIGHTS
+    unknown = given.keys() - HIGHER_IS_BETTER.keys()
+    if unknown:
+        raise ValueError(f"unknown weights {sorted(unknown)}; expected {list(HIGHER_IS_BETTER)}")
+    if any(w < 0 for w in given.values()) or not sum(given.values()):
+        raise ValueError("weights must be non-negative and not all zero")
+    total = sum(given.values())
+    return {col: given.get(col, 0) / total for col in HIGHER_IS_BETTER}
 
 
 def handle(req: dict, data: dict) -> dict:
-    ctx = {"data": data, "specialty": req["specialty"], "seen": {}}
-    llm.run_agent(AGENT, req, ctx)
-    hospitals = {}
-    for hid in req["hospital_ids"]:  # anything the agent skipped: exact-match lookup
-        h = ctx["seen"].get(hid) or lookup(data, hid, req["condition"], req["specialty"])
-        if h:
-            hospitals[hid] = h
-    return {"hospitals": hospitals}
+    ws = weights(req.get("weights"))
+    hospitals = data["hospitals"]
+    names = [n for n in dict.fromkeys(req["hospitals"]) if n in hospitals]
+    if not names:
+        return {"scores": []}
+    scores = dict.fromkeys(names, 0.0)
+    for col, weight in ws.items():
+        for name, s in zip(names, scaled([hospitals[n][col] for n in names], HIGHER_IS_BETTER[col])):
+            scores[name] += weight * s
+    return {"scores": [{"name": n, "kind": "hospital", "hospital": n, "score": round(scores[n], 3),
+                        "note": note(hospitals[n])} for n in names]}
