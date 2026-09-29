@@ -8,7 +8,7 @@ Scores come from the ratings, never the model; the model only writes the one-lin
 import csv
 from pathlib import Path
 
-from agents import Agent, RunContextWrapper, function_tool
+from agents import Agent, RunContextWrapper, StopAtTools, function_tool
 from pydantic import BaseModel
 
 from calendula import llm
@@ -17,18 +17,14 @@ RATINGS = "artificial_doctor_ratings.csv"
 DOCTORS = "artificial_pediatric_brain_cancer_doctors.csv"
 
 PROMPT = """You summarize doctors' public ratings for a worried parent. Call get_ratings once with the
-request's hospitals, then for every doctor write a note of 10 words or fewer about their reputation
-(e.g. "highly rated on both sites", "ratings differ between sites"). Do not invent numbers.
-Reply with only this JSON, no other text: {"notes": [{"doctor_id": "<id>", "note": "<note>"}]}"""
+request's hospitals, then call submit_notes once with, for every doctor, a note of 10 words or fewer
+about their reputation (e.g. "highly rated on both sites", "ratings differ between sites").
+Do not invent numbers."""
 
 
 class Note(BaseModel):
     doctor_id: str
     note: str
-
-
-class Notes(BaseModel):
-    notes: list[Note]
 
 
 def load(data_dir: Path) -> dict:
@@ -57,7 +53,15 @@ def get_ratings(ctx: RunContextWrapper[dict], hospitals: list[str]) -> list[dict
     return [{k: d[k] for k in ("id", "name", "google", "gooddoctor")} for d in at(ctx.context["data"], hospitals)]
 
 
-AGENT = Agent(name="review", instructions=PROMPT, tools=[get_ratings], output_type=Notes)
+@function_tool
+def submit_notes(ctx: RunContextWrapper[dict], notes: list[Note]) -> str:
+    """Submit one note per doctor. Ends the task."""
+    ctx.context["notes"] = notes
+    return "ok"
+
+
+AGENT = Agent(name="review", instructions=PROMPT, tools=[get_ratings, submit_notes],
+              tool_use_behavior=StopAtTools(stop_at_tool_names=["submit_notes"]))
 
 
 def handle(req: dict, data: dict) -> dict:
@@ -65,8 +69,9 @@ def handle(req: dict, data: dict) -> dict:
     if not found:
         return {"scores": []}
     # The model sees only hospital names; ratings reach it through the tool. The case brief isn't needed.
-    out = llm.run_agent(AGENT, {"hospitals": req["hospitals"]}, {"data": data})
-    notes = {n.doctor_id: n.note for n in out.notes} if out else {}
+    ctx = {"data": data, "notes": []}
+    llm.run_agent(AGENT, {"hospitals": req["hospitals"]}, ctx)
+    notes = {n.doctor_id: n.note for n in ctx["notes"]}
     scores = []
     for d in found:
         avg = (d["google"] + d["gooddoctor"]) / 2

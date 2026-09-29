@@ -6,25 +6,21 @@ The agent pulls candidates with a tool and scores them; facts (name, expertise, 
 import json
 from pathlib import Path
 
-from agents import Agent, RunContextWrapper, function_tool
+from agents import Agent, RunContextWrapper, StopAtTools, function_tool
 from pydantic import BaseModel
 
 from calendula import llm
 
 PROMPT = """You score how relevant doctors are to a patient's condition.
-Call find_candidates with the request's specialty and needs_surgery, then for every candidate return a
-relevance score from 0 to 1 and a rationale of 12 words or fewer, based only on their research_interest
-and surgical procedures."""
+Call find_candidates with the request's specialty and needs_surgery, then call submit_scores once with,
+for every candidate, a relevance score from 0 to 1 and a rationale of 12 words or fewer, based only on
+their research_interest and surgical procedures."""
 
 
 class Score(BaseModel):
     npi: str
     relevance: float
     rationale: str
-
-
-class Scores(BaseModel):
-    scores: list[Score]
 
 
 def candidates(data: dict, specialty: str, needs_surgery: bool) -> list[dict]:
@@ -40,7 +36,15 @@ def find_candidates(ctx: RunContextWrapper[dict], specialty: str, needs_surgery:
              "procedures": list(d.get("surgical_expertise", {}))} for d in found]
 
 
-AGENT = Agent(name="doctor", instructions=PROMPT, tools=[find_candidates], output_type=Scores)
+@function_tool
+def submit_scores(ctx: RunContextWrapper[dict], scores: list[Score]) -> str:
+    """Submit your relevance score and rationale for every candidate. Ends the task."""
+    ctx.context["scores"] = scores
+    return "ok"
+
+
+AGENT = Agent(name="doctor", instructions=PROMPT, tools=[find_candidates, submit_scores],
+              tool_use_behavior=StopAtTools(stop_at_tool_names=["submit_scores"]))
 
 
 def keyword_score(condition: str, d: dict) -> float:
@@ -55,8 +59,9 @@ def load(data_dir: Path) -> dict:
 
 def handle(req: dict, data: dict) -> dict:
     found = candidates(data, req["specialty"], req["needs_surgery"])
-    out = llm.run_agent(AGENT, req, {"data": data})
-    scores = {s.npi: s for s in out.scores} if out else {}
+    ctx = {"data": data, "scores": []}
+    llm.run_agent(AGENT, req, ctx)
+    scores = {s.npi: s for s in ctx["scores"]}
     doctors = []
     for d in found:
         s = scores.get(d["npi"])  # scores for unknown NPIs are ignored

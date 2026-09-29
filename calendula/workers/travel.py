@@ -12,18 +12,13 @@ import urllib.request
 from pathlib import Path
 
 from agents import Agent, RunContextWrapper, function_tool
-from pydantic import BaseModel
 
 from calendula import llm
 
 PROMPT = """You find how far a patient is from hospitals. Call drive_times once with all of the
-request's hospital_ids, then list the hospital ids you got times for."""
+request's hospital_ids."""
 
 ROUTES_URL = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix"
-
-
-class Done(BaseModel):
-    hospital_ids: list[str]
 
 
 def _point(lat: float, lon: float) -> dict:
@@ -67,7 +62,8 @@ def drive_times(ctx: RunContextWrapper[dict], hospital_ids: list[str]) -> dict[s
     return found
 
 
-AGENT = Agent(name="travel", instructions=PROMPT, tools=[drive_times], output_type=Done)
+# Results land in ctx["seen"]; stop right after the tool instead of asking the model to summarize.
+AGENT = Agent(name="travel", instructions=PROMPT, tools=[drive_times], tool_use_behavior="stop_on_first_tool")
 
 
 def load(data_dir: Path) -> dict:

@@ -7,16 +7,11 @@ import json
 from pathlib import Path
 
 from agents import Agent, RunContextWrapper, function_tool
-from pydantic import BaseModel
 
 from calendula import llm
 
 PROMPT = """You check insurance coverage. Call check_coverage once with the request's plan_id and all
-of its hospital_ids, then list the hospital ids you checked."""
-
-
-class Done(BaseModel):
-    hospital_ids: list[str]
+of its hospital_ids."""
 
 
 def in_network(data: dict, plan_id: str, hids: list[str]) -> dict[str, bool]:
@@ -33,7 +28,8 @@ def check_coverage(ctx: RunContextWrapper[dict], plan_id: str, hospital_ids: lis
     return found
 
 
-AGENT = Agent(name="insurance", instructions=PROMPT, tools=[check_coverage], output_type=Done)
+# Results land in ctx["seen"]; stop right after the tool instead of asking the model to summarize.
+AGENT = Agent(name="insurance", instructions=PROMPT, tools=[check_coverage], tool_use_behavior="stop_on_first_tool")
 
 
 def load(data_dir: Path) -> dict:
