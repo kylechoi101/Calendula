@@ -1,6 +1,0 @@
-{"doctors": [
-  {"npi": "1000000001", "name": "Dr. Maya Chen", "specialty": "cardiology", "hospital_id": "H1",
-   "accepting_new_patients": true, "expertise": 8.5, "research_score": 9.1,
-   "research_interest": "catheter ablation outcomes in atrial fibrillation",
-   "surgical_expertise": {"catheter ablation": 310, "pacemaker implant": 90}}
-]}
