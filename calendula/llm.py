@@ -14,20 +14,15 @@ from openai import AsyncOpenAI, OpenAI
 
 KIMI = "dedicated/flowerai/Kimi-K2.7-Code-1OUHWL"
 MINIMAX = "dedicated/flowerai/MiniMax-M3-OOLI9o"
-DEFAULT = MINIMAX  # Kimi's final structured output fails to parse in the Agents SDK (2026-09-29)
+DEFAULT = MINIMAX
 
 
-class _NebiusResponsesModel(OpenAIResponsesModel):
-    """Works around two Nebius quirks (verified 2026-09-29):
-    - the SDK always sends `include` (even empty); Nebius rejects it with 400 unsupported_parameter;
-    - with tools + a JSON-schema output format, MiniMax skips the tools and invents the answer.
-      So the schema is only sent once a tool result is in the input.
-    """
+class _ToolsFirstModel(OpenAIResponsesModel):
+    """With tools + a JSON-schema output format, MiniMax skips the tools and invents the answer (verified on
+    Nebius 2026-09-29), so the schema is only sent once a tool result is in the input."""
 
     def _build_response_create_kwargs(self, *args, **kwargs):
         create_kwargs = super()._build_response_create_kwargs(*args, **kwargs)
-        if not create_kwargs.get("include"):
-            create_kwargs.pop("include", None)
         tools_ran = any(isinstance(i, dict) and i.get("type") == "function_call_output" for i in create_kwargs["input"])
         if create_kwargs.get("tools") and not tools_ran:
             create_kwargs.pop("text", None)
@@ -76,7 +71,7 @@ def run_agent(agent: Agent, req: dict, context: dict, model: str = DEFAULT, time
         )
         # Explicit model object: the SDK would parse a plain "dedicated/..." string as a provider prefix.
         # Tracing off: the SDK uploads traces to OpenAI by default, and these carry private data.
-        config = RunConfig(model=_NebiusResponsesModel(model, client), tracing_disabled=True)
+        config = RunConfig(model=_ToolsFirstModel(model, client), tracing_disabled=True)
         result = Runner.run_sync(agent, json.dumps(req), context=context, max_turns=10, run_config=config)
         return result.final_output
     except Exception as e:  # noqa: BLE001 - any failure means "use the fallback"
