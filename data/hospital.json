@@ -1,0 +1,3 @@
+{"hospitals": {"H1": {"name": "Bayview Heart Institute", "lat": 37.43, "lon": -122.17, "ranking": 1,
+  "doctor_patient_ratio": 0.21, "wait_days": {"cardiology": 42, "orthopedics": 18},
+  "outcomes": {"atrial fibrillation": {"mortality": 0.82, "case_volume": 1450}}}}}
