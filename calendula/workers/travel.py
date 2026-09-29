@@ -35,10 +35,13 @@ def _zip(z: str) -> dict:
 
 def google(origin_zip: str, dest_zips: list[str]) -> list[dict | None]:
     """Driving {miles, minutes} from origin_zip to each dest ZIP (None if no route). Raises on API failure."""
+    key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    if not key:
+        raise RuntimeError("GOOGLE_MAPS_API_KEY is not set on this node")
     body = {"origins": [_zip(origin_zip)], "destinations": [_zip(z) for z in dest_zips], "travelMode": "DRIVE"}
     req = urllib.request.Request(ROUTES_URL, data=json.dumps(body).encode(), headers={
         "Content-Type": "application/json",
-        "X-Goog-Api-Key": os.environ["GOOGLE_MAPS_API_KEY"],
+        "X-Goog-Api-Key": key,
         "X-Goog-FieldMask": "destinationIndex,distanceMeters,duration,condition",
     })
     with urllib.request.urlopen(req, timeout=15) as resp:
