@@ -55,10 +55,10 @@ def google(origin_zip: str, dest_zips: list[str]) -> list[dict | None]:
             reason = body[:200]
         raise RuntimeError(f"Google Routes {e.code}: {reason}") from None
     out: list[dict | None] = [None] * len(dest_zips)
-    for e in elements:
+    for e in elements:  # Google omits zero-valued fields (same ZIP -> no distanceMeters, index 0 -> no index)
         if e.get("condition") == "ROUTE_EXISTS":
-            out[e["destinationIndex"]] = {"miles": round(e["distanceMeters"] / 1609.344, 1),
-                                          "minutes": round(int(e["duration"].rstrip("s")) / 60)}
+            out[e.get("destinationIndex", 0)] = {"miles": round(e.get("distanceMeters", 0) / 1609.344, 1),
+                                                 "minutes": round(int(e.get("duration", "0s").rstrip("s")) / 60)}
     return out
 
 

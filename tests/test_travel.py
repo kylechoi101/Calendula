@@ -4,6 +4,7 @@ from calendula import workers
 from calendula.workers import travel
 
 DATA = travel.load(workers.DATA_DIR)
+REAL_GOOGLE = travel.google
 REQ = {"hospitals": ["Sacramento Valley Hospital", "Sierra Advanced Medical Center", "Imperial California Hospital"],
        "case": {"zip": "95816"}}
 
@@ -41,3 +42,15 @@ def test_bad_zip_is_an_error():
 
 def test_note_formats_hours():
     assert travel.note({"miles": 120.5, "minutes": 130}) == "120.5 mi, about 2 h 10 min drive"
+
+
+def test_google_parses_omitted_zero_fields(monkeypatch):
+    """Routes omits zero values: a same-ZIP route has no distanceMeters, destination 0 has no index."""
+    import io, json, urllib.request
+    elements = [{"condition": "ROUTE_EXISTS", "duration": "0s"},
+                {"destinationIndex": 1, "condition": "ROUTE_EXISTS", "distanceMeters": 5311, "duration": "540s"},
+                {"destinationIndex": 2, "condition": "ROUTE_NOT_FOUND"}]
+    monkeypatch.setenv("GOOGLE_MAPS_API_KEY", "test")
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout: io.BytesIO(json.dumps(elements).encode()))
+    assert REAL_GOOGLE("95816", ["95816", "95817", "99999"]) == [
+        {"miles": 0.0, "minutes": 0}, {"miles": 3.3, "minutes": 9}, None]
