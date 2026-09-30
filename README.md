@@ -1,5 +1,30 @@
 # Calendula
 
+**Calendula Labs**: Calendula is an AI-powered healthcare navigation system designed to help patients find
+the right place for their individual treatment needs and preferences.
+
+Finding the "best" hospital or physician is not the same for every patient. While one patient may prioritize
+disease-specific expertise, another may value proximity to home, insurance coverage, hospital characteristics,
+or patient experience.
+
+Calendula combines these individual preferences with information distributed across different healthcare data
+sources. Using Flower AI, we built a federated network of specialized agents that can work with decentralized
+data sources without requiring all healthcare data to be centralized in one place. At the same time, we used
+SuperGrid to provide the infrastructure needed. Together, they allow Calendula to integrate clinical
+information, hospital data, physician expertise, insurance coverage, and patient ratings into a personalized
+ranking of treatment options.
+
+For our prototype, we demonstrate this approach using pediatric brain cancer care in California, showing how
+our agentic AI model can turn fragmented healthcare information into patient-centered medical referral.
+
+*Our vision: the right care should not only depend on what data is available, but on what matters to the
+individual patient.*
+
+- Flower Hub app: `kylechoi101/calendula`
+- Run on SuperGrid: `FLWR_CHAT_SUPERLINK=supergrid FLWR_CHAT_FEDERATION=@kylechoi101/calendula uv run scripts/ask.py "<message>"`
+
+## How it's built
+
 Federated doctor matching on Flower: a coordinator plus five agents, each owning one dataset.
 One AgentApp bundle runs on every node; `--node-config role="..."` decides which agent a SuperNode is.
 

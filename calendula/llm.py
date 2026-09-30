@@ -14,7 +14,7 @@ from openai import AsyncOpenAI, OpenAI
 
 KIMI = "dedicated/flowerai/Kimi-K2.7-Code-1OUHWL"
 MINIMAX = "dedicated/flowerai/MiniMax-M3-OOLI9o"
-DEFAULT = MINIMAX
+DEFAULT = KIMI
 
 
 def complete(instructions: str, prompt: str, model: str = DEFAULT, timeout: float = 60) -> str:

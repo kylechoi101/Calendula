@@ -34,6 +34,8 @@ def rank(covered: list[str], replies: dict[str, dict | None], w: dict[str, float
                 d = doctors.setdefault((name, hosp), {"name": name, "hospital": hosp, "factors": {}})
                 d["factors"][role] = f
 
+    if replies.get("doctor") is not None:  # the doctor agent lists who treats this tumor; nobody else qualifies
+        doctors = {k: d for k, d in doctors.items() if "doctor" in d["factors"]}
     for d in doctors.values():
         d["factors"] = hospitals[d["hospital"]]["factors"] | d["factors"]
     for h in hospitals.values():  # a hospital's reputation factor is the mean of its doctors' reviews

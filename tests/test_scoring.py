@@ -42,3 +42,9 @@ def test_malformed_entries_are_dropped():
                                    s("A", "hospital", "A", 0.7)]}}
     r = scoring.rank(["A"], bad, {"hospital": 1})
     assert r["hospitals"][0]["total"] == 0.7
+
+
+def test_doctor_agent_decides_who_qualifies():
+    replies = dict(REPLIES, doctor={"scores": [s("Dr. X", "doctor", "A", 0.9)]})
+    r = scoring.rank(["A", "B"], replies, {"hospital": 1, "travel": 1, "review": 1, "doctor": 1})
+    assert [d["name"] for d in r["doctors"]] == ["Dr. X"]  # Dr. Y was reviewed but doesn't treat this tumor

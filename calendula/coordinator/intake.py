@@ -53,6 +53,9 @@ most two things at a time; ask what matters most to them in plain words, e.g. do
 hospital quality, being close to home, the specialist's experience). If nothing is missing, "".
 Never give medical advice."""
 
+# The parent waits on this with no feedback; a slow model falls back to keywords rather than stall.
+TIMEOUT = 20
+
 AGENT = Agent(name="intake", instructions=PROMPT, output_type=Profile)
 
 REQUIRED = {"condition": "your child's diagnosis", "zip": "your ZIP code",
@@ -94,7 +97,7 @@ def fallback(turns: list[dict]) -> dict:
 
 def gather(turns: list[dict]) -> dict:
     """Profile dict from the chat so far; "missing" lists what to ask for, "follow_up" the question."""
-    out = llm.run_agent(AGENT, {"conversation": turns}, {})
+    out = llm.run_agent(AGENT, {"conversation": turns}, {}, timeout=TIMEOUT)
     p = out.model_dump() if out else fallback(turns)
     if p.get("zip") and not re.fullmatch(r"\d{5}", p["zip"]):
         p["zip"] = None

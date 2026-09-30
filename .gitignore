@@ -8,3 +8,4 @@ __pycache__/
 conversation/
 .env*
 .venv/
+.DS_Store

@@ -19,6 +19,7 @@ Write, in warm and calm plain language:
 Never give medical advice. Never state a number or fact that is not in the input. Markdown, under 300 words."""
 
 TOP_DOCTORS, TOP_HOSPITALS = 5, 3
+TIMEOUT = 30  # then the template answer; the ranking itself is already computed
 
 
 def pct(x: float) -> str:
@@ -49,7 +50,7 @@ def explain(case: dict, weights: dict, ranking: dict, missing: list[str]) -> str
              "rankings": {"doctors": relabel(ranking["doctors"][:TOP_DOCTORS]),
                           "hospitals": relabel(ranking["hospitals"][:TOP_HOSPITALS])}}
     try:
-        text = llm.complete(PROMPT, json.dumps(facts))
+        text = llm.complete(PROMPT, json.dumps(facts), timeout=TIMEOUT)
     except Exception as e:  # noqa: BLE001 - template below
         print(f"[explain] model failed, using template: {e!r}", file=sys.stderr)
         text = template(ranking)
