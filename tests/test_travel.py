@@ -54,3 +54,18 @@ def test_google_parses_omitted_zero_fields(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout: io.BytesIO(json.dumps(elements).encode()))
     assert REAL_GOOGLE("95816", ["95816", "95817", "99999"]) == [
         {"miles": 0.0, "minutes": 0}, {"miles": 3.3, "minutes": 9}, None]
+
+
+def test_without_google_key_uses_rough_estimate(monkeypatch):
+    monkeypatch.setattr(travel, "google", REAL_GOOGLE)
+    monkeypatch.delenv("GOOGLE_MAPS_API_KEY", raising=False)
+    data = travel.load(workers.DATA_DIR)
+    near, far = "Sacramento Valley Hospital", "Imperial California Hospital"  # 95816 vs 92243
+    out = {s["name"]: s for s in travel.handle({"hospitals": [near, far], "case": {"zip": "95816"}}, data)["scores"]}
+    assert out[near]["miles"] < 5 < 400 < out[far]["miles"]
+    assert out[near]["score"] > out[far]["score"]
+    assert "(estimate)" in out[far]["note"]
+
+
+def test_estimate_skips_zips_it_cannot_place():
+    assert travel.estimate("95816", ["00501"]) == [None]

@@ -4,15 +4,18 @@ build-backend = "hatchling.build"
 
 [project]
 name = "calendula"
-version = "0.1.0"
-description = "Federated doctor matching: a coordinator and five data-owning agents on Flower"
-license = { text = "Apache-2.0" }
+version = "0.1.2"
+description = "AI healthcare navigation: federated Flower agents rank hospitals and physicians by what matters to each patient."
+license = { file = "LICENSE" }
 requires-python = ">=3.11,<4.0"
 dependencies = [
     "flwr>=1.39.0,<2.0",
     "openai>=1.102",
     "openai-agents>=0.22.3",
 ]
+
+[project.urls]
+Repository = "https://github.com/kylechoi101/Calendula"
 
 [dependency-groups]
 dev = ["pytest"]
@@ -21,7 +24,10 @@ dev = ["pytest"]
 packages = ["calendula"]
 
 [tool.flwr.app]
-publisher = "calendula"  # set to your Flower username before `flwr app publish`
+publisher = "kylechoi101"
+display-name = "Calendula"
+fab-format-version = 1
+flwr-version-target = "1.39.0"
 
 [tool.flwr.app.components]
 agentapp = "calendula.app:app"

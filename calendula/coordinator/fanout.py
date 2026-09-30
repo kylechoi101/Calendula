@@ -9,11 +9,11 @@ def discover(agent) -> dict[str, str]:
     ids = grid.node_ids(agent)
     if not ids:
         return {}
-    replies = grid.send_and_receive(agent, {n: envelope("whoami", {}) for n in ids}, timeout=30)
+    replies = grid.send_and_receive(agent, {n: envelope("whoami", {}) for n in ids}, timeout=90)  # SuperGrid nodes reinstall the app each run
     return {r["data"]["role"]: n for n, r in replies.items() if r and r.get("type") == "whoami"}
 
 
-def ask(agent, roles: dict[str, str], requests: dict[str, dict], timeout: float = 60,
+def ask(agent, roles: dict[str, str], requests: dict[str, dict], timeout: float = 120,
         errors: dict[str, str] | None = None) -> dict[str, dict | None]:
     """Send {role: envelope} in parallel. Returns {role: reply data, or None if offline/timeout/error}.
 

@@ -1,28 +1,25 @@
 """Travel agent: driving distance and time from the family's ZIP to each hospital. Request type: travel.
 
 Data: artificial_hospital_data_california.csv (hospital name -> ZIP). Drive times come from the Google Maps
-Routes API (needs GOOGLE_MAPS_API_KEY), routed ZIP to ZIP: the hospitals are fictional, so Google gets
-their ZIPs, and only the family's ZIP (never an address) leaves this node. Numbers come from the tool,
-never the model; without Google the agent errors and the coordinator ranks without distance.
+Routes API when GOOGLE_MAPS_API_KEY is set, routed ZIP to ZIP: the hospitals are fictional, so Google gets
+their ZIPs, and only the family's ZIP (never an address) leaves this node. Without a key (or if Google
+fails) the times are a rough estimate: straight-line miles between ZIP centers (ca_zips.py) x ROAD_FACTOR
+at AVG_MPH. No model: the answer is pure arithmetic, so a model call would only add latency.
 """
 
 import csv
 import json
+import math
 import os
 import urllib.request
 from pathlib import Path
 
-from agents import Agent, RunContextWrapper, function_tool
-
-from calendula import llm
+from calendula.workers.ca_zips import locate
 
 HOSPITALS = "artificial_hospital_data_california.csv"
 ROUTES_URL = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix"
 MAX_MINUTES = 240  # a 4 h drive scores 0
-
-PROMPT = """You find how far a family lives from hospitals. Call drive_times once with the hospital
-names you need (all of the request's hospitals, or the ones the question is about)."""
-
+ROAD_FACTOR, AVG_MPH = 1.25, 50  # rough estimate: roads are ~25% longer than a straight line
 
 def load(data_dir: Path) -> dict:
     with open(data_dir / HOSPITALS, newline="") as f:
@@ -62,42 +59,47 @@ def google(origin_zip: str, dest_zips: list[str]) -> list[dict | None]:
     return out
 
 
+def estimate(origin_zip: str, dest_zips: list[str]) -> list[dict | None]:
+    """Rough driving {miles, minutes, estimate: True} per dest ZIP (None if a ZIP can't be located)."""
+    a = locate(origin_zip)
+    out: list[dict | None] = []
+    for z in dest_zips:
+        b = locate(z)
+        if not (a and b):
+            out.append(None)
+            continue
+        p1, p2 = math.radians(a[0]), math.radians(b[0])
+        h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(b[1] - a[1]) / 2) ** 2
+        miles = 3958.8 * 2 * math.asin(math.sqrt(h)) * ROAD_FACTOR
+        out.append({"miles": round(miles), "minutes": round(miles / AVG_MPH * 60), "estimate": True})
+    return out
+
+
 def times(data: dict, origin_zip: str, hospitals: list[str]) -> dict[str, dict]:
-    """{hospital: {miles, minutes}} for the hospitals we know and Google can route to."""
+    """{hospital: {miles, minutes}} for the hospitals we know: Google if configured, else a rough estimate."""
     known = [h for h in dict.fromkeys(hospitals) if h in data]
     if not known:
         return {}
-    return {h: t for h, t in zip(known, google(origin_zip, [data[h] for h in known])) if t}
-
-
-@function_tool
-def drive_times(ctx: RunContextWrapper[dict], hospitals: list[str]) -> dict[str, dict]:
-    """Driving miles and minutes from the family's home to each named hospital (Google Maps)."""
-    c = ctx.context
-    found = times(c["data"], c["zip"], hospitals)
-    c["seen"].update(found)
-    return found
-
-
-AGENT = Agent(name="travel", instructions=PROMPT, tools=[drive_times], tool_use_behavior="stop_on_first_tool")
+    zips = [data[h] for h in known]
+    try:
+        found = google(origin_zip, zips)
+    except (RuntimeError, OSError):  # no key, Google refused, or network down
+        found = estimate(origin_zip, zips)
+    return {h: t for h, t in zip(known, found) if t}
 
 
 def note(t: dict) -> str:
     h, m = divmod(t["minutes"], 60)
-    return f"{t['miles']} mi, about {f'{h} h {m} min' if h else f'{m} min'} drive"
+    return (f"{'~' if t.get('estimate') else ''}{t['miles']} mi, about {f'{h} h {m} min' if h else f'{m} min'} drive"
+            + (" (estimate)" if t.get("estimate") else ""))
 
 
 def handle(req: dict, data: dict) -> dict:
     origin = str(req["case"]["zip"]).strip()
     if not (origin.isdigit() and len(origin) == 5):
         raise ValueError(f"invalid ZIP {origin!r}")
-    ctx = {"data": data, "zip": origin, "seen": {}}
-    # The model never sees the family's ZIP; drive_times reads it from ctx.
-    llm.run_agent(AGENT, {"hospitals": req["hospitals"]}, ctx)
-    missing = [h for h in req["hospitals"] if h not in ctx["seen"]]
-    if missing:  # agent skipped or failed: call Google directly (raises if Google is down or unconfigured)
-        ctx["seen"].update(times(data, origin, missing))
+    found = times(data, origin, req["hospitals"])  # Google if configured, else the rough estimate
     return {"scores": [{"name": h, "kind": "hospital", "hospital": h,
                         "score": round(max(0.0, 1 - t["minutes"] / MAX_MINUTES), 3), "note": note(t),
                         "miles": t["miles"], "minutes": t["minutes"]}
-                       for h in req["hospitals"] if (t := ctx["seen"].get(h))]}
+                       for h in req["hospitals"] if (t := found.get(h))]}
